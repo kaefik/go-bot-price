@@ -5,11 +5,24 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"strconv"
-	"net/http"    
-  	"io/ioutil"
-	"github.com/headzoo/surf"
+//	"strconv"  
+  	"io/ioutil"	
+	"io"
+	"net/http"
+	"golang.org/x/net/html"
 )
+
+// структура книги
+type dataBook struct {
+	name  string // название книги
+	autor string // автор
+	year  int    // год издания
+	kolpages int // кол-во стрниц
+	ves  int   // вес книги
+	price float32 // цена для всех (обычная)
+	pricediscount float32 // цена со скидкой которая видна
+
+}
 
 // чтение файла с именем namefи возвращение содержимое файла, иначе текст ошибки
 func readfiletxt(namef string) string {
@@ -52,56 +65,55 @@ func savestrtofile(namef string, str string) error {
 	return err
 }
 
+//----------------
 // возвращает содержимое html страницы по урлу suri и ошибку 
-func gethtmlfromurl(suri string) (string,error) {
-	// Create a new browser and open url.
-    bow := surf.NewBrowser()
-    err := bow.Open(suri)
-   // if err != nil {
- //       panic(err)
- //   }
-	shtml:=bow.Body()
-	
-	return shtml,err
+func gethtmlfromurl0(suri string) (string,error){
+	resp, err := http.Get(suri)
+  	body, err := ioutil.ReadAll(resp.Body)   
+	return string(body),err	
 }
 
-// сохраняет содержимое html страницы по урлу suri в файл с именем namef и ошибку 
-func savehtmlfromurl(suri string,namef string) (string,error) {
+// сохраняет содержимое html страницы по урлу suri в файл с именем namef и ошибку 	
+func savehtmlfromurl0(suri string,namef string) (string,error) {
 	// Create a new browser and open url.
-    bow := surf.NewBrowser()
-    err := bow.Open(suri)
-	shtml:=""
+    shtml,err:=gethtmlfromurl0(suri)
     if err != nil {
         panic(err)
     }else{
-		shtml=bow.Body()
-		err=savestrtofile(namef,shtml)	
+			err=savestrtofile(namef,shtml)	
 		}
 	return shtml,err
+}  
+//----------------
+
+func gethtmlfromurl(suri string) (io.ReadCloser,error){
+	resp, err := http.Get(suri)
+  	body:=resp.Body 
+	//defer b.Close() // close Body when the function returns 
+	return body,err	
 }
 
-//----------------
-func gethtmlfromurl0(suri string) (string,error)
-	resp, err := http.Get(suri)    
-  	//fmt.Println("http transport error is:", err)
-  	body, err := ioutil.ReadAll(resp.Body)                                           
-  	fmt.Println("read error is:", err)
 
-	return string(body),err	
-	  
-//----------------
-
+//функция парсинга страницы shtml
+func parsehtmlbookean(shtml io.Reader) dataBook {
+	var resdata dataBook
+	z := html.NewTokenizer(shtml)
+	fmt.Println(z)
+	return resdata
+}
 
 func main() {
 	namestore:="bookean"	
 	namefurls:=namestore+"-url.cfg"
-	namefhtml:=namestore+"-page.html"
+//	namefhtml:=namestore+"-page.html"
 	
-	fmt.Println("Hello World!")
-	
+	fmt.Println("Start programm....!")
+	// сохраняем урлы в файлы
 	list_urls:=readcfgs(namefurls)
 	for i:=0;i<len(list_urls)-1;i++{
-		savehtmlfromurl(list_urls[i],strconv.Itoa(i)+namefhtml)		
+		//s, _:=savehtmlfromurl(list_urls[i],strconv.Itoa(i)+namefhtml)		
+		s, _:=gethtmlfromurl(list_urls[i])
+		fmt.Println(parsehtmlbookean(s))
 	}
-	
+	fmt.Println("The end....!")
 }
