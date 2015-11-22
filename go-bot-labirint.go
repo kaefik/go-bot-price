@@ -3,8 +3,54 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"strconv"
+	"net/http"    
+  	"io/ioutil"
 	"github.com/headzoo/surf"
 )
+
+// чтение файла с именем namefи возвращение содержимое файла, иначе текст ошибки
+func readfiletxt(namef string) string {
+	file, err := os.Open(namef)
+	if err != nil {
+		return "handle the error here"
+	}
+	defer file.Close()
+	// get the file size
+	stat, err := file.Stat()
+	if err != nil {
+		return "error here"
+	}
+	// read the file
+	bs := make([]byte, stat.Size())
+	_, err = file.Read(bs)
+	if err != nil {
+		return "error here"
+	}
+	return string(bs)
+}
+
+// чтение из текстового конфиг файла и возращает массив строк
+func readcfgs(namef string) []string {
+	str := readfiletxt(namef)
+	vv := strings.Split(str, "\n")		
+	return vv
+}
+
+//сохранение строки str в файл с именем namef
+func savestrtofile(namef string, str string) error {
+	file, err := os.Create(namef)
+	if err != nil {
+		// handle the error here
+		return err
+	}
+	defer file.Close()
+
+	file.WriteString(str)
+	return err
+}
 
 // возвращает содержимое html страницы по урлу suri и ошибку 
 func gethtmlfromurl(suri string) (string,error) {
@@ -19,13 +65,43 @@ func gethtmlfromurl(suri string) (string,error) {
 	return shtml,err
 }
 
+// сохраняет содержимое html страницы по урлу suri в файл с именем namef и ошибку 
+func savehtmlfromurl(suri string,namef string) (string,error) {
+	// Create a new browser and open url.
+    bow := surf.NewBrowser()
+    err := bow.Open(suri)
+	shtml:=""
+    if err != nil {
+        panic(err)
+    }else{
+		shtml=bow.Body()
+		err=savestrtofile(namef,shtml)	
+		}
+	return shtml,err
+}
+
+//----------------
+func gethtmlfromurl0(suri string) (string,error)
+	resp, err := http.Get(suri)    
+  	//fmt.Println("http transport error is:", err)
+  	body, err := ioutil.ReadAll(resp.Body)                                           
+  	fmt.Println("read error is:", err)
+
+	return string(body),err	
+	  
+//----------------
 
 
 func main() {
+	namestore:="bookean"	
+	namefurls:=namestore+"-url.cfg"
+	namefhtml:=namestore+"-page.html"
+	
 	fmt.Println("Hello World!")
-	//surl:="http://labirint.ru"
-	surl:="https://git-scm.com/book/ru/v1/%D0%9E%D1%81%D0%BD%D0%BE%D0%B2%D1%8B-Git-%D0%97%D0%B0%D0%BF%D0%B8%D1%81%D1%8C-%D0%B8%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B9-%D0%B2-%D1%80%D0%B5%D0%BF%D0%BE%D0%B7%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D0%B9"
-	shtml,serr:=gethtmlfromurl(surl)
-	fmt.Println(shtml)
-	fmt.Println(serr)
+	
+	list_urls:=readcfgs(namefurls)
+	for i:=0;i<len(list_urls)-1;i++{
+		savehtmlfromurl(list_urls[i],strconv.Itoa(i)+namefhtml)		
+	}
+	
 }
