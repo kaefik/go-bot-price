@@ -164,8 +164,14 @@ func readfiletxt(namef string) string {
 
 // чтение из текстового конфиг файла и возращает массив строк
 func readcfgs(namef string) []string {
+//	var res []string
 	str := readfiletxt(namef)
 	vv := strings.Split(str, "\n")		
+//	for i:=0;i<len(vv);i++ {
+//		if vv[i]!="" {
+//			res=append(res,vv[i])
+//		}
+//	}
 	return vv
 }
 
@@ -195,12 +201,22 @@ func getbooklabirint(url string) dataBook {
 //сохранить данные dataBook в файл 
 // stitle:="Дата выгрузки;Автор;Название книги;Год издания;Кол-во стр.;Вес;Цена;Цена со скидкой"
 func (db *dataBook) savetocsvfile(namef string) error {
+	var fileflag bool = false
+	if _, err := os.Stat(namef); os.IsNotExist(err) {
+ 	 // path/to/whatever does not exist
+		fileflag=true
+	}
+	
 	file, err := os.OpenFile(namef, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 		// handle the error here
 		return err
 	}
 	defer file.Close()
+	if fileflag { // если не существует файл
+		stitle:="Дата выгрузки;Автор;Название книги;Год издания;Кол-во стр.;Вес;Цена;Цена со скидкой"+"\n"
+		file.WriteString(stitle)
+	}
     curdate := time.Now().String()
 	str:=curdate+";"+db.autor+";"+db.name+";"+strconv.Itoa(db.year)+";"+strconv.Itoa(db.kolpages)+";"+strconv.Itoa(db.ves)+";"+strconv.Itoa(db.price)+";"+strconv.Itoa(db.pricediscount)+"\n"
 	file.WriteString(str)
@@ -210,9 +226,9 @@ func (db *dataBook) savetocsvfile(namef string) error {
 
 
 func main() {
+	//sdir:="books"
 	namestore:="labirint"	
 	namefurls:=namestore+"-url.cfg"
-	//namecsv:=namestore+
 ////	namefhtml:=namestore+"-page.html"
 	
 	fmt.Println("Start programm....!")
@@ -221,7 +237,8 @@ func main() {
 	
 	for i:=0;i<len(list_urls);i++{
 		book:=getbooklabirint(list_urls[i])
-		book.savetocsvfile(book.name)
+		namef:=	book.name+".csv"
+		book.savetocsvfile(namef)
 		printbook(book)
 	}
 
