@@ -25,6 +25,7 @@ type dataBook struct {
 	ves  int   // вес книги
 	price int // цена для всех (обычная)
 	pricediscount int // цена со скидкой которая видна	
+	url string  // ссылка на источник данных
 }
 
 func namebook(httpBody io.Reader) []string {
@@ -135,6 +136,7 @@ func printbook (book dataBook) {
 	fmt.Println("Кол-во страниц: ",book.kolpages)
 	fmt.Println("Цена: ",book.price)
 	fmt.Println("Цена со скидкой: ",book.pricediscount)
+	fmt.Println("Ссылка на книгу: ",book.url)
 	return
 }
 
@@ -214,11 +216,11 @@ func (db *dataBook) savetocsvfile(namef string) error {
 	}
 	defer file.Close()
 	if fileflag { // если не существует файл
-		stitle:="Дата выгрузки;Автор;Название книги;Год издания;Кол-во стр.;Вес;Цена;Цена со скидкой"+"\n"
+		stitle:="Дата выгрузки;Автор;Название книги;Год издания;Кол-во стр.;Вес;Цена;Цена со скидкой;Ссылка"+"\n"
 		file.WriteString(stitle)
 	}
     curdate := time.Now().String()
-	str:=curdate+";"+db.autor+";"+db.name+";"+strconv.Itoa(db.year)+";"+strconv.Itoa(db.kolpages)+";"+strconv.Itoa(db.ves)+";"+strconv.Itoa(db.price)+";"+strconv.Itoa(db.pricediscount)+"\n"
+	str:=curdate+";"+db.autor+";"+db.name+";"+strconv.Itoa(db.year)+";"+strconv.Itoa(db.kolpages)+";"+strconv.Itoa(db.ves)+";"+strconv.Itoa(db.price)+";"+strconv.Itoa(db.pricediscount)+";"+db.url+"\n"
 	file.WriteString(str)
 	return err
 	return err
@@ -237,7 +239,8 @@ func main() {
 	
 	for i:=0;i<len(list_urls);i++{
 		book:=getbooklabirint(list_urls[i])
-		namef:=	book.name+".csv"
+		namef:=	namestore+".csv"
+		book.url=list_urls[i]
 		book.savetocsvfile(namef)
 		printbook(book)
 	}
