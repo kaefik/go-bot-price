@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
-//	"strconv"  
+	"strconv"  
   	"io/ioutil"	
 	"io"
 	"net/http"
+	"time"
 	"golang.org/x/net/html"
+	"github.com/ddo/pick"
+	"golang.org/x/net/html/charset"
 )
+
 
 // структура книги
 type dataBook struct {
@@ -19,10 +23,123 @@ type dataBook struct {
 	year  int    // год издания
 	kolpages int // кол-во стрниц
 	ves  int   // вес книги
-	price float32 // цена для всех (обычная)
-	pricediscount float32 // цена со скидкой которая видна
-
+	price int // цена для всех (обычная)
+	pricediscount int // цена со скидкой которая видна	
 }
+
+func namebook(httpBody io.Reader) []string {
+  links := make([]string, 0)
+  page := html.NewTokenizer(httpBody)
+  for {
+    tokenType := page.Next()
+    if tokenType == html.ErrorToken {
+      return links
+    }
+    token := page.Token()
+    if tokenType == html.StartTagToken && token.DataAtom.String() == "meta" {
+      for _, attr := range token.Attr {
+        if attr.Key == "content" {
+          links = append(links, attr.Val)
+        }
+      }
+    }
+  }
+}
+
+//парсинг Автора, массы и кол-во страниц в книге
+func parsedescribebook(s []string) dataBook {
+	var b dataBook
+	for i:=0;i<len(s);i++ {
+		switch s[i] {
+			case "Автор(ы)": b.autor=s[i+1]
+			case "Масса": b.ves,_=strconv.Atoi(s[i+1])	
+			case "Количество страниц": b.kolpages,_=strconv.Atoi(s[i+1])		 
+		}
+	}
+	return b
+}
+
+//получение страницы из урла url
+func gethtmlpage(url string) []byte {
+	resp, err := http.Get(url)
+    if err != nil {
+        fmt.Println("HTTP error:", err)
+		panic("HTTP error")        
+    }
+
+    defer resp.Body.Close()
+    // вот здесь и начинается самое интересное
+    utf8, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
+    if err != nil {
+        fmt.Println("Encoding error:", err)
+        panic("Encoding error")
+    }
+    // оп-па-ча, готово
+	
+//	fmt.Println(namebook(utf8))
+	
+    body, err := ioutil.ReadAll(utf8)
+    if err != nil {
+        fmt.Println("IO error:", err)
+		panic("IO error")
+    }
+	return body
+}
+
+//----- разбор html страницы сайта Лабиринт
+func parselabirintbook (shtml string) dataBook {		
+	var book dataBook
+	
+	scena, _ := pick.PickText(&pick.Option{   // текст цены книги
+		&shtml,
+		"span",
+		&pick.Attr{
+			"itemprop",
+			"price",
+		},
+	})
+
+	scenaskidka, _ := pick.PickText(&pick.Option{   // текст цены книги
+		&shtml,
+		"span",
+		&pick.Attr{
+			"class",
+			"buying-pricenew-val-number",
+		},
+	})		
+	
+	sauthor, _ := pick.PickText(&pick.Option{   // текст описания книги
+		&shtml,
+		"span",
+		&pick.Attr{
+			"itemtype",
+			"http://schema.org/ItemList",
+		},
+	})
+
+	stitle, _ := pick.PickText(&pick.Option{&shtml,"span",&pick.Attr{"itemprop","name"}})	
+	book=parsedescribebook(sauthor)
+	book.name=stitle[1]
+	if len(scenaskidka)>0 {
+		book.pricediscount,_=strconv.Atoi(scenaskidka[0])
+	}
+	vv := strings.Split(scena[0], " ")
+	book.price,_ =strconv.Atoi(vv[1])
+	return book
+}
+
+func printbook (book dataBook) {
+	fmt.Println("Автор: ",book.autor)
+	fmt.Println("Название книги: ",book.name)
+	fmt.Println("Вес: ",book.ves)
+	fmt.Println("Кол-во страниц: ",book.kolpages)
+	fmt.Println("Цена: ",book.price)
+	fmt.Println("Цена со скидкой: ",book.pricediscount)
+	return
+}
+
+
+
 
 // чтение файла с именем namefи возвращение содержимое файла, иначе текст ошибки
 func readfiletxt(namef string) string {
@@ -65,55 +182,48 @@ func savestrtofile(namef string, str string) error {
 	return err
 }
 
-//----------------
-// возвращает содержимое html страницы по урлу suri и ошибку 
-func gethtmlfromurl0(suri string) (string,error){
-	resp, err := http.Get(suri)
-  	body, err := ioutil.ReadAll(resp.Body)   
-	return string(body),err	
+func getbooklabirint(url string) dataBook {
+	body:=gethtmlpage(url)	
+	
+	shtml := string(body)	
+
+	book:=parselabirintbook(shtml)
+	
+	return book
 }
 
-// сохраняет содержимое html страницы по урлу suri в файл с именем namef и ошибку 	
-func savehtmlfromurl0(suri string,namef string) (string,error) {
-	// Create a new browser and open url.
-    shtml,err:=gethtmlfromurl0(suri)
-    if err != nil {
-        panic(err)
-    }else{
-			err=savestrtofile(namef,shtml)	
-		}
-	return shtml,err
-}  
-//----------------
-
-func gethtmlfromurl(suri string) (io.ReadCloser,error){
-	resp, err := http.Get(suri)
-  	body:=resp.Body 
-	//defer b.Close() // close Body when the function returns 
-	return body,err	
+//сохранить данные dataBook в файл 
+// stitle:="Дата выгрузки;Автор;Название книги;Год издания;Кол-во стр.;Вес;Цена;Цена со скидкой"
+func (db *dataBook) savetocsvfile(namef string) error {
+	file, err := os.OpenFile(namef, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+		// handle the error here
+		return err
+	}
+	defer file.Close()
+    curdate := time.Now().String()
+	str:=curdate+";"+db.autor+";"+db.name+";"+strconv.Itoa(db.year)+";"+strconv.Itoa(db.kolpages)+";"+strconv.Itoa(db.ves)+";"+strconv.Itoa(db.price)+";"+strconv.Itoa(db.pricediscount)+"\n"
+	file.WriteString(str)
+	return err
+	return err
 }
 
-
-//функция парсинга страницы shtml
-func parsehtmlbookean(shtml io.Reader) dataBook {
-	var resdata dataBook
-	z := html.NewTokenizer(shtml)
-	fmt.Println(z)
-	return resdata
-}
 
 func main() {
-	namestore:="bookean"	
+	namestore:="labirint"	
 	namefurls:=namestore+"-url.cfg"
-//	namefhtml:=namestore+"-page.html"
+	//namecsv:=namestore+
+////	namefhtml:=namestore+"-page.html"
 	
 	fmt.Println("Start programm....!")
-	// сохраняем урлы в файлы
-	list_urls:=readcfgs(namefurls)
-	for i:=0;i<len(list_urls)-1;i++{
-		//s, _:=savehtmlfromurl(list_urls[i],strconv.Itoa(i)+namefhtml)		
-		s, _:=gethtmlfromurl(list_urls[i])
-		fmt.Println(parsehtmlbookean(s))
+//	// получаем урлы из файлы
+    list_urls:=readcfgs(namefurls)
+	
+	for i:=0;i<len(list_urls);i++{
+		book:=getbooklabirint(list_urls[i])
+		book.savetocsvfile(book.name)
+		printbook(book)
 	}
+
 	fmt.Println("The end....!")
 }
