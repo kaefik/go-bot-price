@@ -29,6 +29,14 @@ type dataBook struct {
 	url string  // ссылка на источник данных
 }
 
+// задание-триггер для срабатывания оповещения
+type Tasker struct {
+	url string  // ссылка на источник данных
+	uslovie string // условие < , > , = 
+	price int // цена триггера
+	result bool // результат срабатывания триггера, если true , то триггер сработал 
+}
+
 //отправка почты через яндекс темой stema сообщение smsg адресату toaddr
 func sendmailyandex(stema, smsg, toaddr string) bool {
 	auth := smtp.PlainAuth("", "magazinebot@yandex.ru", "qwe123!!", "smtp.yandex.ru") 	
@@ -182,17 +190,31 @@ func readfiletxt(namef string) string {
 	return string(bs)
 }
 
-// чтение из текстового конфиг файла и возращает массив строк
+// чтение из текстового конфиг файла заданий и возращает массив строк урл
 func readcfgs(namef string) []string {
-//	var res []string
+	var res []string
 	str := readfiletxt(namef)
-	vv := strings.Split(str, "\n")		
-//	for i:=0;i<len(vv);i++ {
-//		if vv[i]!="" {
-//			res=append(res,vv[i])
-//		}
-//	}
-	return vv
+	vv := strings.Split(str, "\n")	
+		
+	for i:=0;i<len(vv);i++ {
+		s:=strings.Split(vv[i],";")
+		res=append(res,s[0])
+		
+	}
+	return res
+}
+
+// чтение из текстового конфиг файла заданий и возращает массив строк урл
+func readtaskercfg(namef string) []Tasker {
+	var res []Tasker
+	str := readfiletxt(namef)
+	vv := strings.Split(str, "\n")	
+	for i:=0;i<len(vv);i++ {
+		s:=strings.Split(vv[i],";")		
+		tt,_:= strconv.Atoi(s[2])
+		res=append(res,Tasker{s[0],s[1],tt,false})		
+	}
+	return res
 }
 
 //сохранение строки str в файл с именем namef
@@ -219,7 +241,6 @@ func getbooklabirint(url string) dataBook {
 }
 
 //сохранить данные dataBook в файл 
-// stitle:="Дата выгрузки;Автор;Название книги;Год издания;Кол-во стр.;Вес;Цена;Цена со скидкой"
 func (db *dataBook) savetocsvfile(namef string) error {
 	var fileflag bool = false
 	if _, err := os.Stat(namef); os.IsNotExist(err) {
@@ -245,23 +266,63 @@ func (db *dataBook) savetocsvfile(namef string) error {
 }
 
 
+
+// проверки триггеров
+func TriggersisUslovie(book []dataBook,task []Tasker) []Tasker {
+	for i:=0;i<len(task);i++ {
+		for j:=0;j<len(book);j++ {
+			t:=task[i]
+			b:=book[j]
+			if task[i].url == b.url {
+				switch task[i].uslovie {
+					case ">": {task[i].result = b.price > task[i].price; fmt.Println(">",t.result)}
+					case "=": {task[i].result = b.price == task[i].price; fmt.Println("=",t.result)}
+					case "<": {task[i].result = b.price < task[i].price; fmt.Println("<",t.result)}
+					default: t.result=false
+				}
+			}
+		}
+	}
+	return task
+}
+
+
 func main() {
+	var books []dataBook
 	//sdir:="books"
 	namestore:="labirint"	
 	namefurls:=namestore+"-url.cfg"
 ////	namefhtml:=namestore+"-page.html"
 	
 	fmt.Println("Start programm....!")
-//	// получаем урлы из файлы
-    list_urls:=readcfgs(namefurls)
+	// получаем урлы из файлы
+//    list_urls:=readcfgs(namefurls)
 	
-	for i:=0;i<len(list_urls);i++{
-		book:=getbooklabirint(list_urls[i])
+	// получаем задания из файла
+	list_tasker:=readtaskercfg(namefurls)
+	
+	fmt.Println(readtaskercfg(namefurls))
+	
+	//получение данных книжек
+	for i:=0;i<len(list_tasker);i++{
+		book:=getbooklabirint(list_tasker[i].url)
 		namef:=	namestore+".csv"
-		book.url=list_urls[i]
+		book.url=list_tasker[i].url
 		book.savetocsvfile(namef)
+		books=append(books,book)
 		printbook(book)
 	}
-
+	
+	//проверка на наличии срабатываний
+	
+	fmt.Println(TriggersisUslovie(books,list_tasker))	
+	
+//	for i:=0;i<len(list_tasker);i++{
+//		fmt.Println(list_tasker[i])
+//		fmt.Println("Результат",isUslovie(books,list_tasker))
+//	}
+    
+	//sendmailyandex("моя тема письма", "йоу", "i.saifutdinov@kazan.2gis.ru")
+	
 	fmt.Println("The end....!")
 }
