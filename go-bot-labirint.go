@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"net/smtp"
 	"golang.org/x/net/html"
 	"github.com/ddo/pick"
 	"golang.org/x/net/html/charset"
@@ -26,6 +27,23 @@ type dataBook struct {
 	price int // цена для всех (обычная)
 	pricediscount int // цена со скидкой которая видна	
 	url string  // ссылка на источник данных
+}
+
+//отправка почты через яндекс темой stema сообщение smsg адресату toaddr
+func sendmailyandex(stema, smsg, toaddr string) bool {
+	auth := smtp.PlainAuth("", "magazinebot@yandex.ru", "qwe123!!", "smtp.yandex.ru") 	
+	to := []string{toaddr}
+	msg := []byte("To: "+toaddr+"\r\n" +
+    "Subject: "+stema+" \r\n" +
+    "\r\n" +
+    smsg+"\r\n")
+	err := smtp.SendMail("smtp.yandex.ru:25", auth, "magazinebot@yandex.ru", to, msg)
+	
+    if err != nil { 
+//        log.Fatal(err) 
+		panic(err)
+    } 
+	return true
 }
 
 func namebook(httpBody io.Reader) []string {
