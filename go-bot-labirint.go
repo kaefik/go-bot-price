@@ -1,4 +1,8 @@
 // go-bot-labirint
+// программа скачивает по ссылкам данные по книгам Лабиринт и проверяет условия по ссылкам
+// Автор: Ильнур Сайфутдинов
+// email: ilnursoft@gmail.com
+// декабрь 2015
 package main
 
 import (
@@ -14,6 +18,7 @@ import (
 	"golang.org/x/net/html"
 	"github.com/ddo/pick"
 	"golang.org/x/net/html/charset"
+	"log"
 )
 
 
@@ -35,6 +40,18 @@ type Tasker struct {
 	uslovie string // условие < , > , = 
 	price int // цена триггера
 	result bool // результат срабатывания триггера, если true , то триггер сработал 
+}
+
+var LogFile *log.Logger 
+
+func InitLogFile(namef string) *log.Logger {
+	file, err := os.OpenFile(namef, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+	    log.Fatalln("Failed to open log file", os.Stderr, ":", err)
+	}
+	multi:= io.MultiWriter(file, os.Stdout)
+	LFile:= log.New(multi, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)	
+	return LFile
 }
 
 //отправка почты через яндекс темой stema сообщение smsg адресату toaddr
@@ -267,15 +284,27 @@ func (db *dataBook) savetocsvfile(namef string) error {
 
 //проверка триггеров по массиву полученных данных по книгах
 func (task *Tasker) isUslovie(book []dataBook) {
+	var res1, res2 bool
+	res1=false
+	res2=false
 	for j:=0;j<len(book);j++ {
 		if task.url == book[j].url {
 				switch task.uslovie {
-					case ">": task.result = book[j].price > task.price
-					case "=": task.result = book[j].price == task.price
-					case "<": task.result = book[j].price < task.price
-					default: task.result=false
+					case ">": res1 = book[j].price > task.price
+					case "=": res1 = book[j].price == task.price
+					case "<": res1 = book[j].price < task.price
+					default: res1=false
 				}
-			}
+				if book[j].pricediscount>0 { // если цена со скидкой больше нуля, то проверяем триггер на скидку
+					switch task.uslovie {
+						case ">": res2 = book[j].pricediscount > task.price
+						case "=": res2 = book[j].pricediscount == task.price
+						case "<": res2 = book[j].pricediscount < task.price
+						default: res2=false
+					}
+				}
+				task.result=res1 || res2
+				}  
 	}
 }
 
@@ -324,8 +353,11 @@ func main() {
 	//sdir:="books"
 	namestore:="labirint"	
 	namefurls:=namestore+"-url.cfg"
+	namelogfile:=namestore+".log"
 	
-	fmt.Println("Start programm....!")
+	LogFile=InitLogFile(namelogfile)  // инициализация лог файла		
+	LogFile.Println("Starting programm")	
+	
 	// получаем урлы из файлы
 //    list_urls:=readcfgs(namefurls)
 	
@@ -341,23 +373,16 @@ func main() {
 		book.url=list_tasker[i].url
 		book.savetocsvfile(namef)
 		books=append(books,book)
-		printbook(book)
+//		printbook(book)
 	}
 	
 	//проверка на наличии срабатываний	
 	TriggersisUslovie(books,list_tasker)
 	
 	for i:=0;i<len(list_tasker);i++{
+		LogFile.Println(list_tasker[i].genmessage(books))
 		list_tasker[i].sendmessage(books, "i.saifutdinov@kazan.2gis.ru")	
 	}
 	
-	
-	
-	
-	
-	
-   
-	//sendmailyandex("триггер сработал",list_tasker[1].sendmessage(books), "i.saifutdinov@kazan.2gis.ru")
-	
-	fmt.Println("The end....!")
+	LogFile.Println("The end....!")
 }
