@@ -265,25 +265,57 @@ func (db *dataBook) savetocsvfile(namef string) error {
 	return err
 }
 
-
+//проверка триггеров по массиву полученных данных по книгах
+func (task *Tasker) isUslovie(book []dataBook) {
+	for j:=0;j<len(book);j++ {
+		if task.url == book[j].url {
+				switch task.uslovie {
+					case ">": task.result = book[j].price > task.price
+					case "=": task.result = book[j].price == task.price
+					case "<": task.result = book[j].price < task.price
+					default: task.result=false
+				}
+			}
+	}
+}
 
 // проверки триггеров
 func TriggersisUslovie(book []dataBook,task []Tasker) []Tasker {
 	for i:=0;i<len(task);i++ {
-		for j:=0;j<len(book);j++ {
-			t:=task[i]
-			b:=book[j]
-			if task[i].url == b.url {
-				switch task[i].uslovie {
-					case ">": {task[i].result = b.price > task[i].price; fmt.Println(">",t.result)}
-					case "=": {task[i].result = b.price == task[i].price; fmt.Println("=",t.result)}
-					case "<": {task[i].result = b.price < task[i].price; fmt.Println("<",t.result)}
-					default: t.result=false
-				}
-			}
-		}
+		task[i].isUslovie(book)
 	}
 	return task
+}
+
+
+// если тригер сработал то возвращает строку сообщения, иначе пусто
+func (task *Tasker) genmessage(book []dataBook) string {
+	var sprice, spricedisc string
+	var smegtrigger, smegtrigger0, smsg string
+	smsg=""
+	if task.result {
+		for j:=0;j<len(book);j++ {
+			b:= book[j]
+			if task.url == b.url {
+				sprice = strconv.Itoa(b.price)
+				spricedisc = strconv.Itoa(b.pricediscount)
+				smegtrigger="Сбработал триггер по книге: \n\n"+"Автор: "+b.autor+"\n"+"Название: "+b.name+"\n"+"Цена: "+sprice+"\n"+"Цена со скидкой: "+spricedisc+"\n"+"Ссылка: "+b.url+"\n\n"	
+				sprice= strconv.Itoa(task.price)
+				smegtrigger0="Условие триггера: "+task.uslovie + "\n Цена триггера: "+sprice+"\n"
+				smsg=smegtrigger+smegtrigger0
+			}
+		}			
+	}
+ 	return smsg
+}
+
+//отправка сообщения если сработал триггер
+func (task *Tasker) sendmessage(book []dataBook, toaddr string){
+	smsg:=task.genmessage(book)
+	if smsg!="" {
+		sendmailyandex("сработал триггер",smsg, toaddr)
+	}
+	return
 }
 
 
@@ -292,7 +324,6 @@ func main() {
 	//sdir:="books"
 	namestore:="labirint"	
 	namefurls:=namestore+"-url.cfg"
-////	namefhtml:=namestore+"-page.html"
 	
 	fmt.Println("Start programm....!")
 	// получаем урлы из файлы
@@ -313,16 +344,20 @@ func main() {
 		printbook(book)
 	}
 	
-	//проверка на наличии срабатываний
+	//проверка на наличии срабатываний	
+	TriggersisUslovie(books,list_tasker)
 	
-	fmt.Println(TriggersisUslovie(books,list_tasker))	
+	for i:=0;i<len(list_tasker);i++{
+		list_tasker[i].sendmessage(books, "i.saifutdinov@kazan.2gis.ru")	
+	}
 	
-//	for i:=0;i<len(list_tasker);i++{
-//		fmt.Println(list_tasker[i])
-//		fmt.Println("Результат",isUslovie(books,list_tasker))
-//	}
-    
-	//sendmailyandex("моя тема письма", "йоу", "i.saifutdinov@kazan.2gis.ru")
+	
+	
+	
+	
+	
+   
+	//sendmailyandex("триггер сработал",list_tasker[1].sendmessage(books), "i.saifutdinov@kazan.2gis.ru")
 	
 	fmt.Println("The end....!")
 }
