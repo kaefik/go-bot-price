@@ -173,13 +173,13 @@ func parselabirintbook (shtml string) dataBook {
 }
 
 func printbook (book dataBook) {
-	fmt.Println("Автор: ",book.autor)
-	fmt.Println("Название книги: ",book.name)
-	fmt.Println("Вес: ",book.ves)
-	fmt.Println("Кол-во страниц: ",book.kolpages)
-	fmt.Println("Цена: ",book.price)
-	fmt.Println("Цена со скидкой: ",book.pricediscount)
-	fmt.Println("Ссылка на книгу: ",book.url)
+	LogFile.Println("Автор: ",book.autor)
+	LogFile.Println("Название книги: ",book.name)
+	LogFile.Println("Вес: ",book.ves)
+	LogFile.Println("Кол-во страниц: ",book.kolpages)
+	LogFile.Println("Цена: ",book.price)
+	LogFile.Println("Цена со скидкой: ",book.pricediscount)
+	LogFile.Println("Ссылка на книгу: ",book.url)
 	return
 }
 
@@ -330,7 +330,7 @@ func (task *Tasker) genmessage(book []dataBook) string {
 				spricedisc = strconv.Itoa(b.pricediscount)
 				smegtrigger="Сбработал триггер по книге: \n\n"+"Автор: "+b.autor+"\n"+"Название: "+b.name+"\n"+"Цена: "+sprice+"\n"+"Цена со скидкой: "+spricedisc+"\n"+"Ссылка: "+b.url+"\n\n"	
 				sprice= strconv.Itoa(task.price)
-				smegtrigger0="Условие триггера: "+task.uslovie + "\n Цена триггера: "+sprice+"\n"
+				smegtrigger0="Условие триггера: "+task.uslovie + "\n Цена триггера: "+sprice+"\n\n"
 				smsg=smegtrigger+smegtrigger0
 			}
 		}			
@@ -350,6 +350,7 @@ func (task *Tasker) sendmessage(book []dataBook, toaddr string){
 
 func main() {
 	var books []dataBook
+	toaddr:="i.saifutdinov@kazan.2gis.ru"
 	//sdir:="books"
 	namestore:="labirint"	
 	namefurls:=namestore+"-url.cfg"
@@ -373,7 +374,7 @@ func main() {
 		book.url=list_tasker[i].url
 		book.savetocsvfile(namef)
 		books=append(books,book)
-//		printbook(book)
+		printbook(book)
 	}
 	
 	//проверка на наличии срабатываний	
@@ -381,8 +382,8 @@ func main() {
 	
 	for i:=0;i<len(list_tasker);i++{
 		LogFile.Println(list_tasker[i].genmessage(books))
-		list_tasker[i].sendmessage(books, "i.saifutdinov@kazan.2gis.ru")	
+		list_tasker[i].sendmessage(books, toaddr)	
 	}
 	
-	LogFile.Println("The end....!")
+	LogFile.Println("The end....!\n")
 }
