@@ -3,6 +3,8 @@
 // Автор: Ильнур Сайфутдинов
 // email: ilnursoft@gmail.com
 // декабрь 2015
+
+// рефакторинг кода: создание новых сущностей и объединение существующих
 package main
 
 import (
@@ -21,9 +23,10 @@ import (
 	"log"
 )
 
+//------------ Объявление типов и глобальных переменных
 
 // структура книги
-type dataBook struct {
+type Book struct {
 	name  string // название книги
 	autor string // автор
 	year  int    // год издания
@@ -44,32 +47,9 @@ type Tasker struct {
 
 var LogFile *log.Logger 
 
-func InitLogFile(namef string) *log.Logger {
-	file, err := os.OpenFile(namef, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-	    log.Fatalln("Failed to open log file", os.Stderr, ":", err)
-	}
-	multi:= io.MultiWriter(file, os.Stdout)
-	LFile:= log.New(multi, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)	
-	return LFile
-}
+//------------ END Объявление типов и глобальных переменных
 
-//отправка почты через яндекс темой stema сообщение smsg адресату toaddr
-func sendmailyandex(stema, smsg, toaddr string) bool {
-	auth := smtp.PlainAuth("", "magazinebot@yandex.ru", "qwe123!!", "smtp.yandex.ru") 	
-	to := []string{toaddr}
-	msg := []byte("To: "+toaddr+"\r\n" +
-    "Subject: "+stema+" \r\n" +
-    "\r\n" +
-    smsg+"\r\n")
-	err := smtp.SendMail("smtp.yandex.ru:25", auth, "magazinebot@yandex.ru", to, msg)
-	
-    if err != nil { 
-//        log.Fatal(err) 
-		panic(err)
-    } 
-	return true
-}
+
 
 func namebook(httpBody io.Reader) []string {
   links := make([]string, 0)
@@ -91,8 +71,8 @@ func namebook(httpBody io.Reader) []string {
 }
 
 //парсинг Автора, массы и кол-во страниц в книге
-func parsedescribebook(s []string) dataBook {
-	var b dataBook
+func parsedescribebook(s []string) Book {
+	var b Book
 	for i:=0;i<len(s);i++ {
 		switch s[i] {
 			case "Автор(ы)": b.autor=s[i+1]
@@ -131,8 +111,8 @@ func gethtmlpage(url string) []byte {
 }
 
 //----- разбор html страницы сайта Лабиринт
-func parselabirintbook (shtml string) dataBook {		
-	var book dataBook
+func parselabirintbook (shtml string) Book {		
+	var book0 Book
 	
 	scena, _ := pick.PickText(&pick.Option{   // текст цены книги
 		&shtml,
@@ -162,24 +142,24 @@ func parselabirintbook (shtml string) dataBook {
 	})
 
 	stitle, _ := pick.PickText(&pick.Option{&shtml,"span",&pick.Attr{"itemprop","name"}})	
-	book=parsedescribebook(sauthor)
-	book.name=stitle[1]
+	book0=parsedescribebook(sauthor)
+	book0.name=stitle[1]
 	if len(scenaskidka)>0 {
-		book.pricediscount,_=strconv.Atoi(scenaskidka[0])
+		book0.pricediscount,_=strconv.Atoi(scenaskidka[0])
 	}
 	vv := strings.Split(scena[0], " ")
-	book.price,_ =strconv.Atoi(vv[1])
-	return book
+	book0.price,_ =strconv.Atoi(vv[1])
+	return book0
 }
 
-func printbook (book dataBook) {
-	LogFile.Println("Автор: ",book.autor)
-	LogFile.Println("Название книги: ",book.name)
-	LogFile.Println("Вес: ",book.ves)
-	LogFile.Println("Кол-во страниц: ",book.kolpages)
-	LogFile.Println("Цена: ",book.price)
-	LogFile.Println("Цена со скидкой: ",book.pricediscount)
-	LogFile.Println("Ссылка на книгу: ",book.url)
+func printbook (book0 Book) {
+	LogFile.Println("Автор: ",book0.autor)
+	LogFile.Println("Название книги: ",book0.name)
+	LogFile.Println("Вес: ",book0.ves)
+	LogFile.Println("Кол-во страниц: ",book0.kolpages)
+	LogFile.Println("Цена: ",book0.price)
+	LogFile.Println("Цена со скидкой: ",book0.pricediscount)
+	LogFile.Println("Ссылка на книгу: ",book0.url)
 	return
 }
 
@@ -247,18 +227,18 @@ func savestrtofile(namef string, str string) error {
 	return err
 }
 
-func getbooklabirint(url string) dataBook {
+func getbooklabirint(url string) Book {
 	body:=gethtmlpage(url)	
 	
 	shtml := string(body)	
 
-	book:=parselabirintbook(shtml)
+	book0:=parselabirintbook(shtml)
 	
-	return book
+	return book0
 }
 
-//сохранить данные dataBook в файл 
-func (db *dataBook) savetocsvfile(namef string) error {
+//сохранить данные Book в файл 
+func (db *Book) savetocsvfile(namef string) error {
 	var fileflag bool = false
 	if _, err := os.Stat(namef); os.IsNotExist(err) {
  	 // path/to/whatever does not exist
@@ -283,23 +263,23 @@ func (db *dataBook) savetocsvfile(namef string) error {
 }
 
 //проверка триггеров по массиву полученных данных по книгах
-func (task *Tasker) isUslovie(book []dataBook) {
+func (task *Tasker) isUslovie(book0 []Book) {
 	var res1, res2 bool
 	res1=false
 	res2=false
-	for j:=0;j<len(book);j++ {
-		if task.url == book[j].url {
+	for j:=0;j<len(book0);j++ {
+		if task.url == book0[j].url {
 				switch task.uslovie {
-					case ">": res1 = book[j].price > task.price
-					case "=": res1 = book[j].price == task.price
-					case "<": res1 = book[j].price < task.price
+					case ">": res1 = book0[j].price > task.price
+					case "=": res1 = book0[j].price == task.price
+					case "<": res1 = book0[j].price < task.price
 					default: res1=false
 				}
-				if book[j].pricediscount>0 { // если цена со скидкой больше нуля, то проверяем триггер на скидку
+				if book0[j].pricediscount>0 { // если цена со скидкой больше нуля, то проверяем триггер на скидку
 					switch task.uslovie {
-						case ">": res2 = book[j].pricediscount > task.price
-						case "=": res2 = book[j].pricediscount == task.price
-						case "<": res2 = book[j].pricediscount < task.price
+						case ">": res2 = book0[j].pricediscount > task.price
+						case "=": res2 = book0[j].pricediscount == task.price
+						case "<": res2 = book0[j].pricediscount < task.price
 						default: res2=false
 					}
 				}
@@ -309,22 +289,22 @@ func (task *Tasker) isUslovie(book []dataBook) {
 }
 
 // проверки триггеров
-func TriggersisUslovie(book []dataBook,task []Tasker) []Tasker {
+func TriggersisUslovie(book0 []Book,task []Tasker) []Tasker {
 	for i:=0;i<len(task);i++ {
-		task[i].isUslovie(book)
+		task[i].isUslovie(book0)
 	}
 	return task
 }
 
 
 // если тригер сработал то возвращает строку сообщения, иначе пусто
-func (task *Tasker) genmessage(book []dataBook) string {
+func (task *Tasker) genmessage(book0 []Book) string {
 	var sprice, spricedisc string
 	var smegtrigger, smegtrigger0, smsg string
 	smsg=""
 	if task.result {
-		for j:=0;j<len(book);j++ {
-			b:= book[j]
+		for j:=0;j<len(book0);j++ {
+			b:= book0[j]
 			if task.url == b.url {
 				sprice = strconv.Itoa(b.price)
 				spricedisc = strconv.Itoa(b.pricediscount)
@@ -339,17 +319,49 @@ func (task *Tasker) genmessage(book []dataBook) string {
 }
 
 //отправка сообщения если сработал триггер
-func (task *Tasker) sendmessage(book []dataBook, toaddr string){
-	smsg:=task.genmessage(book)
+func (task *Tasker) sendmessage(book0 []Book, toaddr string){
+	smsg:=task.genmessage(book0)
 	if smsg!="" {
 		sendmailyandex("сработал триггер",smsg, toaddr)
 	}
 	return
 }
 
+//---------------- общие функции ---------------------
+
+func InitLogFile(namef string) *log.Logger {
+	file, err := os.OpenFile(namef, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+	    log.Fatalln("Failed to open log file", os.Stderr, ":", err)
+	}
+	multi:= io.MultiWriter(file, os.Stdout)
+	LFile:= log.New(multi, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)	
+	return LFile
+}
+
+//отправка почты через яндекс темой stema сообщение smsg адресату toaddr
+func sendmailyandex(stema, smsg, toaddr string) bool {
+	auth := smtp.PlainAuth("", "magazinebot@yandex.ru", "qwe123!!", "smtp.yandex.ru") 	
+	to := []string{toaddr}
+	msg := []byte("To: "+toaddr+"\r\n" +
+    "Subject: "+stema+" \r\n" +
+    "\r\n" +
+    smsg+"\r\n")
+	err := smtp.SendMail("smtp.yandex.ru:25", auth, "magazinebot@yandex.ru", to, msg)
+	
+    if err != nil { 
+//        log.Fatal(err) 
+		panic(err)
+    } 
+	return true
+}
+
+//---------------- END общие функции ---------------------
+
+
 
 func main() {
-	var books []dataBook
+	var books []Book
 	toaddr:="i.saifutdinov@kazan.2gis.ru"
 	//sdir:="books"
 	namestore:="labirint"	
@@ -369,12 +381,12 @@ func main() {
 	
 	//получение данных книжек
 	for i:=0;i<len(list_tasker);i++{
-		book:=getbooklabirint(list_tasker[i].url)
+		book0:=getbooklabirint(list_tasker[i].url)
 		namef:=	namestore+".csv"
-		book.url=list_tasker[i].url
-		book.savetocsvfile(namef)
-		books=append(books,book)
-		printbook(book)
+		book0.url=list_tasker[i].url
+		book0.savetocsvfile(namef)
+		books=append(books,book0)
+		printbook(book0)
 	}
 	
 	//проверка на наличии срабатываний	
