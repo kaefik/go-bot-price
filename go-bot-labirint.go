@@ -17,13 +17,21 @@ import (
 	"net/http"
 	"time"
 	"net/smtp"
-	"golang.org/x/net/html"
+//	"golang.org/x/net/html"
 	"github.com/ddo/pick"
 	"golang.org/x/net/html/charset"
 	"log"
 )
 
 //------------ Объявление типов и глобальных переменных
+
+// структура задания с информацией по книге
+type TaskerBook struct {
+	url string  // ссылка на источник данных
+	Book
+	Tasker
+}
+
 
 // структура книги
 type Book struct {
@@ -51,24 +59,16 @@ var LogFile *log.Logger
 
 
 
-func namebook(httpBody io.Reader) []string {
-  links := make([]string, 0)
-  page := html.NewTokenizer(httpBody)
-  for {
-    tokenType := page.Next()
-    if tokenType == html.ErrorToken {
-      return links
-    }
-    token := page.Token()
-    if tokenType == html.StartTagToken && token.DataAtom.String() == "meta" {
-      for _, attr := range token.Attr {
-        if attr.Key == "content" {
-          links = append(links, attr.Val)
-        }
-      }
-    }
-  }
+// проверки триггеров
+func TriggersisUslovie(book0 []Book,task []Tasker) []Tasker {
+	for i:=0;i<len(task);i++ {
+		task[i].isUslovie(book0)
+	}
+	return task
 }
+
+
+// ---------------  парсинг магазина Лабиринт
 
 //парсинг Автора, массы и кол-во страниц в книге
 func parsedescribebook(s []string) Book {
@@ -81,33 +81,6 @@ func parsedescribebook(s []string) Book {
 		}
 	}
 	return b
-}
-
-//получение страницы из урла url
-func gethtmlpage(url string) []byte {
-	resp, err := http.Get(url)
-    if err != nil {
-        fmt.Println("HTTP error:", err)
-		panic("HTTP error")        
-    }
-
-    defer resp.Body.Close()
-    // вот здесь и начинается самое интересное
-    utf8, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
-    if err != nil {
-        fmt.Println("Encoding error:", err)
-        panic("Encoding error")
-    }
-    // оп-па-ча, готово
-	
-//	fmt.Println(namebook(utf8))
-	
-    body, err := ioutil.ReadAll(utf8)
-    if err != nil {
-        fmt.Println("IO error:", err)
-		panic("IO error")
-    }
-	return body
 }
 
 //----- разбор html страницы сайта Лабиринт
@@ -123,7 +96,7 @@ func parselabirintbook (shtml string) Book {
 		},
 	})
 
-	scenaskidka, _ := pick.PickText(&pick.Option{   // текст цены книги
+	scenaskidka, _ := pick.PickText(&pick.Option{   // текст цены со скидкой книги
 		&shtml,
 		"span",
 		&pick.Attr{
@@ -152,6 +125,11 @@ func parselabirintbook (shtml string) Book {
 	return book0
 }
 
+// --------------- END  парсинг магазина Лабиринт
+
+
+// -----------  функции для Book
+
 func printbook (book0 Book) {
 	LogFile.Println("Автор: ",book0.autor)
 	LogFile.Println("Название книги: ",book0.name)
@@ -161,80 +139,6 @@ func printbook (book0 Book) {
 	LogFile.Println("Цена со скидкой: ",book0.pricediscount)
 	LogFile.Println("Ссылка на книгу: ",book0.url)
 	return
-}
-
-
-
-
-// чтение файла с именем namefи возвращение содержимое файла, иначе текст ошибки
-func readfiletxt(namef string) string {
-	file, err := os.Open(namef)
-	if err != nil {
-		return "handle the error here"
-	}
-	defer file.Close()
-	// get the file size
-	stat, err := file.Stat()
-	if err != nil {
-		return "error here"
-	}
-	// read the file
-	bs := make([]byte, stat.Size())
-	_, err = file.Read(bs)
-	if err != nil {
-		return "error here"
-	}
-	return string(bs)
-}
-
-// чтение из текстового конфиг файла заданий и возращает массив строк урл
-func readcfgs(namef string) []string {
-	var res []string
-	str := readfiletxt(namef)
-	vv := strings.Split(str, "\n")	
-		
-	for i:=0;i<len(vv);i++ {
-		s:=strings.Split(vv[i],";")
-		res=append(res,s[0])
-		
-	}
-	return res
-}
-
-// чтение из текстового конфиг файла заданий и возращает массив строк урл
-func readtaskercfg(namef string) []Tasker {
-	var res []Tasker
-	str := readfiletxt(namef)
-	vv := strings.Split(str, "\n")	
-	for i:=0;i<len(vv);i++ {
-		s:=strings.Split(vv[i],";")		
-		tt,_:= strconv.Atoi(s[2])
-		res=append(res,Tasker{s[0],s[1],tt,false})		
-	}
-	return res
-}
-
-//сохранение строки str в файл с именем namef
-func savestrtofile(namef string, str string) error {
-	file, err := os.Create(namef)
-	if err != nil {
-		// handle the error here
-		return err
-	}
-	defer file.Close()
-
-	file.WriteString(str)
-	return err
-}
-
-func getbooklabirint(url string) Book {
-	body:=gethtmlpage(url)	
-	
-	shtml := string(body)	
-
-	book0:=parselabirintbook(shtml)
-	
-	return book0
 }
 
 //сохранить данные Book в файл 
@@ -262,6 +166,35 @@ func (db *Book) savetocsvfile(namef string) error {
 	return err
 }
 
+//получение данных книги по урлу url
+func getbooklabirint(url string) Book {
+	body:=gethtmlpage(url)	
+	
+	shtml := string(body)	
+
+	book0:=parselabirintbook(shtml)
+	
+	return book0
+}
+
+// ----------- END функции для Book
+
+
+// -----------  функции для Tasker
+
+// чтение из текстового конфиг файла заданий и возращает массив заданий Tasker
+func readtaskercfg(namef string) []Tasker {
+	var res []Tasker
+	str := readfiletxt(namef)
+	vv := strings.Split(str, "\n")	
+	for i:=0;i<len(vv);i++ {
+		s:=strings.Split(vv[i],";")		
+		tt,_:= strconv.Atoi(s[2])
+		res=append(res,Tasker{s[0],s[1],tt,false})		
+	}
+	return res
+}
+
 //проверка триггеров по массиву полученных данных по книгах
 func (task *Tasker) isUslovie(book0 []Book) {
 	var res1, res2 bool
@@ -287,15 +220,6 @@ func (task *Tasker) isUslovie(book0 []Book) {
 				}  
 	}
 }
-
-// проверки триггеров
-func TriggersisUslovie(book0 []Book,task []Tasker) []Tasker {
-	for i:=0;i<len(task);i++ {
-		task[i].isUslovie(book0)
-	}
-	return task
-}
-
 
 // если тригер сработал то возвращает строку сообщения, иначе пусто
 func (task *Tasker) genmessage(book0 []Book) string {
@@ -327,6 +251,9 @@ func (task *Tasker) sendmessage(book0 []Book, toaddr string){
 	return
 }
 
+// ----------- END  функции для Tasker
+
+
 //---------------- общие функции ---------------------
 
 func InitLogFile(namef string) *log.Logger {
@@ -354,6 +281,68 @@ func sendmailyandex(stema, smsg, toaddr string) bool {
 		panic(err)
     } 
 	return true
+}
+
+//получение страницы из урла url
+func gethtmlpage(url string) []byte {
+	resp, err := http.Get(url)
+    if err != nil {
+        fmt.Println("HTTP error:", err)
+		panic("HTTP error")        
+    }
+
+    defer resp.Body.Close()
+    // вот здесь и начинается самое интересное
+    utf8, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
+    if err != nil {
+        fmt.Println("Encoding error:", err)
+        panic("Encoding error")
+    }
+    // оп-па-ча, готово
+	
+//	fmt.Println(namebook(utf8))
+	
+    body, err := ioutil.ReadAll(utf8)
+    if err != nil {
+        fmt.Println("IO error:", err)
+		panic("IO error")
+    }
+	return body
+}
+
+// чтение файла с именем namefи возвращение содержимое файла, иначе текст ошибки
+func readfiletxt(namef string) string {
+	file, err := os.Open(namef)
+	if err != nil {
+		return "handle the error here"
+	}
+	defer file.Close()
+	// get the file size
+	stat, err := file.Stat()
+	if err != nil {
+		return "error here"
+	}
+	// read the file
+	bs := make([]byte, stat.Size())
+	_, err = file.Read(bs)
+	if err != nil {
+		return "error here"
+	}
+	return string(bs)
+}
+
+
+//сохранение строки str в файл с именем namef
+func savestrtofile(namef string, str string) error {
+	file, err := os.Create(namef)
+	if err != nil {
+		// handle the error here
+		return err
+	}
+	defer file.Close()
+
+	file.WriteString(str)
+	return err
 }
 
 //---------------- END общие функции ---------------------
