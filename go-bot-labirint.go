@@ -69,25 +69,14 @@ func TriggersisUslovie(book0 []Book,task []Tasker) []Tasker {
 
 
 // ---------------  парсинг магазина Лабиринт
+//получение данных книги из магазина лабиринт по урлу url
+func (dbook *Book) Getlabirint(url string) {
+	body:=gethtmlpage(url)		
+	shtml := string(body)	
+//	fmt.Println(shtml)
 
-//парсинг Автора, массы и кол-во страниц в книге
-func parsedescribebook(s []string) Book {
-	var b Book
-	for i:=0;i<len(s);i++ {
-		switch s[i] {
-			case "Автор(ы)": b.autor=s[i+1]
-			case "Масса": b.ves,_=strconv.Atoi(s[i+1])	
-			case "Количество страниц": b.kolpages,_=strconv.Atoi(s[i+1])		 
-		}
-	}
-	return b
-}
-
-//----- разбор html страницы сайта Лабиринт
-func parselabirintbook (shtml string) Book {		
-	var book0 Book
-	
-	scena, _ := pick.PickText(&pick.Option{   // текст цены книги
+	//book0:=parselabirintbook(shtml)
+		scena, _ := pick.PickText(&pick.Option{   // текст цены книги
 		&shtml,
 		"span",
 		&pick.Attr{
@@ -115,20 +104,42 @@ func parselabirintbook (shtml string) Book {
 	})
 
 	stitle, _ := pick.PickText(&pick.Option{&shtml,"span",&pick.Attr{"itemprop","name"}})	
-	book0=parsedescribebook(sauthor)
-	book0.name=stitle[1]
+	//book0=parsedescribebook(sauthor)
+	
+	for i:=0;i<len(sauthor);i++ {
+		switch sauthor[i] {
+			case "Автор(ы)": dbook.autor=sauthor[i+1]
+			case "Масса": dbook.ves,_=strconv.Atoi(sauthor[i+1])	
+			case "Количество страниц": dbook.kolpages,_=strconv.Atoi(sauthor[i+1])		 
+		}
+	}
+	
+	dbook.name=stitle[1]
 	if len(scenaskidka)>0 {
-		book0.pricediscount,_=strconv.Atoi(scenaskidka[0])
+		dbook.pricediscount,_=strconv.Atoi(scenaskidka[0])
 	}
 	vv := strings.Split(scena[0], " ")
-	book0.price,_ =strconv.Atoi(vv[1])
-	return book0
+	dbook.price,_ =strconv.Atoi(vv[1])
+	
+	return
 }
+
 
 // --------------- END  парсинг магазина Лабиринт
 
 
 // -----------  функции для Book
+
+func (book0 *Book) print () {
+	LogFile.Println("Автор: ",book0.autor)
+	LogFile.Println("Название книги: ",book0.name)
+	LogFile.Println("Вес: ",book0.ves)
+	LogFile.Println("Кол-во страниц: ",book0.kolpages)
+	LogFile.Println("Цена: ",book0.price)
+	LogFile.Println("Цена со скидкой: ",book0.pricediscount)
+	LogFile.Println("Ссылка на книгу: ",book0.url)
+	return
+}
 
 func printbook (book0 Book) {
 	LogFile.Println("Автор: ",book0.autor)
@@ -166,16 +177,7 @@ func (db *Book) savetocsvfile(namef string) error {
 	return err
 }
 
-//получение данных книги по урлу url
-func getbooklabirint(url string) Book {
-	body:=gethtmlpage(url)	
-	
-	shtml := string(body)	
 
-	book0:=parselabirintbook(shtml)
-	
-	return book0
-}
 
 // ----------- END функции для Book
 
@@ -351,6 +353,7 @@ func savestrtofile(namef string, str string) error {
 
 func main() {
 	var books []Book
+	var book0 Book
 	toaddr:="i.saifutdinov@kazan.2gis.ru"
 	//sdir:="books"
 	namestore:="labirint"	
@@ -370,12 +373,20 @@ func main() {
 	
 	//получение данных книжек
 	for i:=0;i<len(list_tasker);i++{
-		book0:=getbooklabirint(list_tasker[i].url)
+		
+		//book0:=getbooklabirint(list_tasker[i].url)
+		book0.Getlabirint(list_tasker[i].url)
+		
 		namef:=	namestore+".csv"
 		book0.url=list_tasker[i].url
 		book0.savetocsvfile(namef)
 		books=append(books,book0)
-		printbook(book0)
+		//printbook(book0)
+	//	book0.print()
+	}
+	
+	for i:=0;i<len(books);i++ {
+		books[i].print()
 	}
 	
 	//проверка на наличии срабатываний	
