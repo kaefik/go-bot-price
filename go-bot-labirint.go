@@ -117,7 +117,10 @@ func (dbook *Book) Getlabirint(url string) {
 	dbook.name=stitle[1]
 	if len(scenaskidka)>0 {
 		dbook.pricediscount,_=strconv.Atoi(scenaskidka[0])
-	}
+	} else {
+		dbook.pricediscount=0
+		}
+	
 	vv := strings.Split(scena[0], " ")
 	dbook.price,_ =strconv.Atoi(vv[1])
 	
@@ -181,7 +184,10 @@ func readtaskerbookcfg(namef string) []TaskerBook {
 	for i:=0;i<len(vv);i++ {
 		s:=strings.Split(vv[i],";")		
 		tt,_:= strconv.Atoi(s[2])
-		res=append(res,TaskerBook{url:s[0],uslovie:s[1],price:tt,result:false})		
+		dt:=Tasker{uslovie:s[1],price:tt,result:false}
+		t:=TaskerBook{url:s[0]}
+		t.Tasker=dt
+		res=append(res,t)		
 	}
 	return res
 }
@@ -358,6 +364,8 @@ func main() {
 	var books []Book
 	var book0 Book
 	var tb TaskerBook
+	
+	fmt.Println(tb)
 	
 	toaddr:="i.saifutdinov@kazan.2gis.ru"
 	//sdir:="books"
