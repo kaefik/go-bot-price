@@ -141,17 +141,6 @@ func (book0 *Book) print () {
 	return
 }
 
-func printbook (book0 Book) {
-	LogFile.Println("Автор: ",book0.autor)
-	LogFile.Println("Название книги: ",book0.name)
-	LogFile.Println("Вес: ",book0.ves)
-	LogFile.Println("Кол-во страниц: ",book0.kolpages)
-	LogFile.Println("Цена: ",book0.price)
-	LogFile.Println("Цена со скидкой: ",book0.pricediscount)
-	LogFile.Println("Ссылка на книгу: ",book0.url)
-	return
-}
-
 //сохранить данные Book в файл 
 func (db *Book) savetocsvfile(namef string) error {
 	var fileflag bool = false
@@ -183,6 +172,20 @@ func (db *Book) savetocsvfile(namef string) error {
 
 
 // -----------  функции для Tasker
+
+// чтение из текстового конфиг файла заданий и возращает массив заданий Tasker
+func readtaskerbookcfg(namef string) []TaskerBook {
+	var res []TaskerBook
+	str := readfiletxt(namef)
+	vv := strings.Split(str, "\n")	
+	for i:=0;i<len(vv);i++ {
+		s:=strings.Split(vv[i],";")		
+		tt,_:= strconv.Atoi(s[2])
+		res=append(res,TaskerBook{url:s[0],uslovie:s[1],price:tt,result:false})		
+	}
+	return res
+}
+
 
 // чтение из текстового конфиг файла заданий и возращает массив заданий Tasker
 func readtaskercfg(namef string) []Tasker {
@@ -354,6 +357,8 @@ func savestrtofile(namef string, str string) error {
 func main() {
 	var books []Book
 	var book0 Book
+	var tb TaskerBook
+	
 	toaddr:="i.saifutdinov@kazan.2gis.ru"
 	//sdir:="books"
 	namestore:="labirint"	
@@ -363,8 +368,6 @@ func main() {
 	LogFile=InitLogFile(namelogfile)  // инициализация лог файла		
 	LogFile.Println("Starting programm")	
 	
-	// получаем урлы из файлы
-//    list_urls:=readcfgs(namefurls)
 	
 	// получаем задания из файла
 	list_tasker:=readtaskercfg(namefurls)
