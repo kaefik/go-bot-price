@@ -156,23 +156,9 @@ func (db *Book) Savetocsvfile(namef string) error {
 
 // ----------- END функции для Book
 
-// -----------  функции для Tasker
 
-// чтение из текстового конфиг файла заданий и возращает массив заданий Tasker
-func Readtaskerbookcfg(namef string) []TaskerBook {
-	var res []TaskerBook
-	str := readfiletxt(namef)
-	vv := strings.Split(str, "\n")
-	for i := 0; i < len(vv); i++ {
-		s := strings.Split(vv[i], ";")
-		tt, _ := strconv.Atoi(s[2])
-		dt := Tasker{uslovie: s[1], price: tt, result: false}
-		t := TaskerBook{Url: s[0]}
-		t.Tasker = dt
-		res = append(res, t)
-	}
-	return res
-}
+
+// -----------  функции для Tasker
 
 //проверка триггеров по массиву полученных данных по книгах
 func (task *Tasker) isTrue(book0 Book) {
@@ -324,4 +310,58 @@ func InitLogFile(namef string) *log.Logger {
 	multi := io.MultiWriter(file, os.Stdout)
 	LFile := log.New(multi, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
 	return LFile
+}
+
+// чтение из текстового конфиг файла заданий и возращает массив заданий Tasker
+func Readtaskerbookcfg(namef string) []TaskerBook {
+	var res []TaskerBook
+	str := readfiletxt(namef)
+	vv := strings.Split(str, "\n")
+	for i := 0; i < len(vv); i++ {
+		s := strings.Split(vv[i], ";")
+		tt, _ := strconv.Atoi(s[2])
+		dt := Tasker{uslovie: s[1], price: tt, result: false}
+		t := TaskerBook{Url: s[0]}
+		t.Tasker = dt
+		res = append(res, t)
+	}
+	return res
+}
+
+
+// вызов парсинга книжного магазина
+func RunBooks(namestore string,toaddr string) {
+	//---- инициализация переменных	
+	var list_tasker []TaskerBook
+	
+	namefurls := namestore + "-url.cfg"
+	namelogfile := namestore + ".log"
+//---- END инициализация переменных		
+
+	LogFile = InitLogFile(namelogfile) // инициализация лог файла
+	LogFile.Println("Starting programm")
+	
+	LogFile.Println("Имя магазина store: ",namestore)
+	LogFile.Println("Э/почта для отправки уведомлений: ",toaddr)	
+
+	// получаем задания из файла
+	list_tasker = Readtaskerbookcfg(namefurls)
+	
+	//получение данных книжек
+	for i := 0; i < len(list_tasker); i++ {
+		list_tasker[i].Getlabirint(list_tasker[i].Url)
+		namef := namestore + ".csv"
+		list_tasker[i].Savetocsvfile(namef)
+		list_tasker[i].Print()
+	}
+
+	//проверка на наличии срабатываний
+	list_tasker = TriggerBookisUslovie(list_tasker)
+
+	for i := 0; i < len(list_tasker); i++ {
+		LogFile.Println(list_tasker[i].Genmessage())
+		list_tasker[i].Sendmail(toaddr)
+	}
+
+	LogFile.Println("The end....!\n")
 }

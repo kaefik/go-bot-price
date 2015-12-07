@@ -10,8 +10,10 @@
 package main
 
 import (
+	"fmt"
 	"flag"
 	"go-bot-price/pkg"
+	"go-bot-price/pkg/tovar"
 )
 
 ////------------ Объявление типов и глобальных переменных
@@ -41,42 +43,18 @@ func parse_args() bool {
 //---------------- END общие функции ---------------------
 
 func main() {
-	var list_tasker []books.TaskerBook
+	
+	var tv tovar.TaskerTovar
+	
+	fmt.Println(tv)
 	
 	if !parse_args() {
 	   return
  	}
 	
-//---- инициализация переменных
-	namestore := store
-	namefurls := namestore + "-url.cfg"
-	namelogfile := namestore + ".log"
-//---- END инициализация переменных		
-
-	books.LogFile = books.InitLogFile(namelogfile) // инициализация лог файла
-	books.LogFile.Println("Starting programm")
-	
-	books.LogFile.Println("Имя магазина store: ",store)
-	books.LogFile.Println("Э/почта для отправки уведомлений: ",toaddr)	
-
-	// получаем задания из файла
-	list_tasker = books.Readtaskerbookcfg(namefurls)
-	
-	//получение данных книжек
-	for i := 0; i < len(list_tasker); i++ {
-		list_tasker[i].Getlabirint(list_tasker[i].Url)
-		namef := namestore + ".csv"
-		list_tasker[i].Savetocsvfile(namef)
-		list_tasker[i].Print()
+	switch store {	
+		case "labirint": books.RunBooks(store,toaddr) // вызов парсинга книжного магазина
+		case "eldorado": tovar.RunTovar(store,toaddr) // вызов парсинга магазина электроники
 	}
 
-	//проверка на наличии срабатываний
-	list_tasker = books.TriggerBookisUslovie(list_tasker)
-
-	for i := 0; i < len(list_tasker); i++ {
-		books.LogFile.Println(list_tasker[i].Genmessage())
-		list_tasker[i].Sendmail(toaddr)
-	}
-
-	books.LogFile.Println("The end....!\n")
 }
