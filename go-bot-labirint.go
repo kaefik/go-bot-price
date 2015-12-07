@@ -17,9 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	//	"golang.org/x/net/html"
 	"log"
-
 	"github.com/ddo/pick"
 	"golang.org/x/net/html/charset"
 )
@@ -42,12 +40,10 @@ type Book struct {
 	ves           int    // вес книги
 	price         int    // цена для всех (обычная)
 	pricediscount int    // цена со скидкой которая видна
-	//url string  // ссылка на источник данных
 }
 
 // задание-триггер для срабатывания оповещения
 type Tasker struct {
-	//url string  // ссылка на источник данных
 	uslovie string // условие < , > , =
 	price   int    // цена триггера
 	result  bool   // результат срабатывания триггера, если true , то триггер сработал
@@ -58,11 +54,9 @@ var LogFile *log.Logger
 //------------ END Объявление типов и глобальных переменных
 
 //проверка триггеров по массиву полученных данных по книгах
-//func (task *Tasker) isUslovie(book0 []Book)
 
 // проверки триггеров TaskerBook
 func TriggerBookisUslovie(tb []TaskerBook) []TaskerBook {
-	//book0 []Book,task []Tasker) []Tasker {
 	for i := 0; i < len(tb); i++ {
 		tb[i].isTrue(tb[i].Book)
 	}
@@ -78,9 +72,6 @@ func (dbook *Book) Getlabirint(url string) {
 	fmt.Println(url)
 	body := gethtmlpage(url)
 	shtml := string(body)
-	//	fmt.Println(shtml)
-
-	//book0:=parselabirintbook(shtml)
 	scena, _ := pick.PickText(&pick.Option{ // текст цены книги
 		&shtml,
 		"span",
@@ -89,7 +80,7 @@ func (dbook *Book) Getlabirint(url string) {
 			"price",
 		},
 	})
-
+	
 	scenaskidka, _ := pick.PickText(&pick.Option{ // текст цены со скидкой книги
 		&shtml,
 		"span",
@@ -109,7 +100,6 @@ func (dbook *Book) Getlabirint(url string) {
 	})
 
 	stitle, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "name"}})
-	//book0=parsedescribebook(sauthor)
 
 	for i := 0; i < len(sauthor); i++ {
 		switch sauthor[i] {
@@ -146,7 +136,6 @@ func (book0 *Book) print() {
 	LogFile.Println("Кол-во страниц: ", book0.kolpages)
 	LogFile.Println("Цена: ", book0.price)
 	LogFile.Println("Цена со скидкой: ", book0.pricediscount)
-	//	LogFile.Println("Ссылка на книгу: ",book0.url)
 	return
 }
 
@@ -232,12 +221,6 @@ func (task *Tasker) isTrue(book0 Book) {
 
 func (tb *TaskerBook) print() {
 	tb.print()
-//	LogFile.Println("Автор: ", book0.autor)
-//	LogFile.Println("Название книги: ", book0.name)
-//	LogFile.Println("Вес: ", book0.ves)
-//	LogFile.Println("Кол-во страниц: ", book0.kolpages)
-//	LogFile.Println("Цена: ", book0.price)
-//	LogFile.Println("Цена со скидкой: ", book0.pricediscount)
 	LogFile.Println("Ссылка на книгу: ",tb.url)
 	return
 }
@@ -291,9 +274,7 @@ func sendmailyandex(stema, smsg, toaddr string) bool {
 		"\r\n" +
 		smsg + "\r\n")
 	err := smtp.SendMail("smtp.yandex.ru:25", auth, "magazinebot@yandex.ru", to, msg)
-
 	if err != nil {
-		//        log.Fatal(err)
 		panic(err)
 	}
 	return true
@@ -306,7 +287,6 @@ func gethtmlpage(url string) []byte {
 		fmt.Println("HTTP error:", err)
 		panic("HTTP error")
 	}
-
 	defer resp.Body.Close()
 	// вот здесь и начинается самое интересное
 	utf8, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
@@ -314,10 +294,6 @@ func gethtmlpage(url string) []byte {
 		fmt.Println("Encoding error:", err)
 		panic("Encoding error")
 	}
-	// оп-па-ча, готово
-
-	//	fmt.Println(namebook(utf8))
-
 	body, err := ioutil.ReadAll(utf8)
 	if err != nil {
 		fmt.Println("IO error:", err)
@@ -378,23 +354,15 @@ func main() {
 	LogFile.Println("Starting programm")
 
 	// получаем задания из файла
-	//	list_tasker:=readtaskercfg(namefurls)
 	list_tasker := readtaskerbookcfg(namefurls)
 
 	fmt.Println(list_tasker)
 
 	//получение данных книжек
 	for i := 0; i < len(list_tasker); i++ {
-
-		//book0:=getbooklabirint(list_tasker[i].url)
 		list_tasker[i].Getlabirint(list_tasker[i].url)
-
 		namef := namestore + ".csv"
-		//book0.url=list_tasker[i].url
 		list_tasker[i].savetocsvfile(namef)
-		//		books=append(books,book0)
-		//printbook(book0)
-		//	book0.print()
 	}
 
 	for i := 0; i < len(list_tasker); i++ {
@@ -402,14 +370,10 @@ func main() {
 	}
 
 	//проверка на наличии срабатываний
-	//	TriggersisUslovie(books,list_tasker)
 	list_tasker = TriggerBookisUslovie(list_tasker)
 
 	for i := 0; i < len(list_tasker); i++ {
-		//		LogFile.Println(list_tasker[i].genmessage(books))
 		LogFile.Println(list_tasker[i].genmessage())
-		//		gentriggermessage(list_tasker[i].Book))
-		//list_tasker[i].sendtriggermessage(list_tasker[i].Book, toaddr)
 		list_tasker[i].sendmail(toaddr)
 	}
 
