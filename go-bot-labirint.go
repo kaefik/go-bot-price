@@ -4,7 +4,7 @@
 // email: ilnursoft@gmail.com
 // декабрь 2015
 
-// рефакторинг кода: создание новых сущностей и объединение существующих
+// добавление парсинга Эльдорадо
 // изм 07.12.2015
 
 package main
@@ -23,6 +23,7 @@ import (
 	"flag"
 	"github.com/ddo/pick"
 	"golang.org/x/net/html/charset"
+	"go-bot-price"
 )
 
 //------------ Объявление типов и глобальных переменных
@@ -30,20 +31,20 @@ import (
 // структура задания с информацией по книге
 type TaskerBook struct {
 	url string // ссылка на источник данных
-	Book
+	books.Book
 	Tasker
 }
 
-// структура книги
-type Book struct {
-	name          string // название книги
-	autor         string // автор
-	year          int    // год издания
-	kolpages      int    // кол-во стрниц
-	ves           int    // вес книги
-	price         int    // цена для всех (обычная)
-	pricediscount int    // цена со скидкой которая видна
-}
+//// структура книги
+//type Book struct {
+//	name          string // название книги
+//	autor         string // автор
+//	year          int    // год издания
+//	kolpages      int    // кол-во стрниц
+//	ves           int    // вес книги
+//	price         int    // цена для всех (обычная)
+//	pricediscount int    // цена со скидкой которая видна
+//}
 
 // задание-триггер для срабатывания оповещения
 type Tasker struct {
