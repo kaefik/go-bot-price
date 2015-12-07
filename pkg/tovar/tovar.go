@@ -11,11 +11,7 @@ type TaskerTovar struct {
 
 //// структура книги
 type Tovar struct {
-	name          string // название книги
-	autor         string // автор
-	year          int    // год издания
-	kolpages      int    // кол-во стрниц
-	ves           int    // вес книги
+	name          string // название товара
 	price         int    // цена для всех (обычная)
 	pricediscount int    // цена со скидкой которая видна
 }
@@ -27,13 +23,17 @@ type Tasker struct {
 	result  bool   // результат срабатывания триггера, если true , то триггер сработал
 }
 
+var LogFile *log.Logger
+
+//------------ END Объявление типов и глобальных переменных
+
 // вызов парсинга книжного магазина
 func RunTovar(namestore string,toaddr string) {
 	//---- инициализация переменных	
 //	var list_tasker []TaskerTovar
 	
-//	namefurls := namestore + "-url.cfg"
-//	namelogfile := namestore + ".log"
+	namefurls := namestore + "-url.cfg"
+	namelogfile := namestore + ".log"
 ////---- END инициализация переменных		
 
 //	LogFile = InitLogFile(namelogfile) // инициализация лог файла
