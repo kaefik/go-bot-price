@@ -5,10 +5,12 @@
 // декабрь 2015
 
 // рефакторинг кода: создание новых сущностей и объединение существующих
+// изм 07.12.2015
+
 package main
 
 import (
-	"fmt"
+//	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +20,7 @@ import (
 	"strings"
 	"time"
 	"log"
+	"flag"
 	"github.com/ddo/pick"
 	"golang.org/x/net/html/charset"
 )
@@ -51,6 +54,11 @@ type Tasker struct {
 
 var LogFile *log.Logger
 
+var (
+	store string
+	toaddr string
+)
+
 //------------ END Объявление типов и глобальных переменных
 
 //проверка триггеров по массиву полученных данных по книгах
@@ -68,8 +76,7 @@ func TriggerBookisUslovie(tb []TaskerBook) []TaskerBook {
 func (dbook *Book) Getlabirint(url string) {
 	if url == "" {
 		return
-	}
-	fmt.Println(url)
+	}	
 	body := gethtmlpage(url)
 	shtml := string(body)
 	scena, _ := pick.PickText(&pick.Option{ // текст цены книги
@@ -118,10 +125,8 @@ func (dbook *Book) Getlabirint(url string) {
 	} else {
 		dbook.pricediscount = 0
 	}
-
 	vv := strings.Split(scena[0], " ")
 	dbook.price, _ = strconv.Atoi(vv[1])
-
 	return
 }
 
@@ -161,8 +166,7 @@ func (db *Book) savetocsvfile(namef string) error {
 	str := curdate + ";" + db.autor + ";" + db.name + ";" + strconv.Itoa(db.year) + ";" + strconv.Itoa(db.kolpages) + ";" + strconv.Itoa(db.ves) + ";" + strconv.Itoa(db.price) + ";" + strconv.Itoa(db.pricediscount) + "\n"
 	//";"+db.url+
 	file.WriteString(str)
-	return err
-	return err
+	return err	
 }
 
 // ----------- END функции для Book
@@ -220,7 +224,7 @@ func (task *Tasker) isTrue(book0 Book) {
 // -----------  функции для TaskerBook
 
 func (tb *TaskerBook) print() {
-	tb.print()
+	tb.Book.print()
 	LogFile.Println("Ссылка на книгу: ",tb.url)
 	return
 }
@@ -255,6 +259,7 @@ func (task *TaskerBook) sendmail(toaddr string) {
 
 //---------------- общие функции ---------------------
 
+// инициализация файла логов
 func InitLogFile(namef string) *log.Logger {
 	file, err := os.OpenFile(namef, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
@@ -284,19 +289,19 @@ func sendmailyandex(stema, smsg, toaddr string) bool {
 func gethtmlpage(url string) []byte {
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("HTTP error:", err)
+		LogFile.Println("HTTP error:", err)
 		panic("HTTP error")
 	}
 	defer resp.Body.Close()
 	// вот здесь и начинается самое интересное
 	utf8, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
 	if err != nil {
-		fmt.Println("Encoding error:", err)
+		LogFile.Println("Encoding error:", err)
 		panic("Encoding error")
 	}
 	body, err := ioutil.ReadAll(utf8)
 	if err != nil {
-		fmt.Println("IO error:", err)
+		LogFile.Println("IO error:", err)
 		panic("IO error")
 	}
 	return body
@@ -336,36 +341,50 @@ func savestrtofile(namef string, str string) error {
 	return err
 }
 
+// функция парсинга аргументов программы
+func parse_args() bool {
+	flag.StringVar(&store, "store", "", "Название магазина по которому будут мониторить цены.")
+	flag.StringVar(&toaddr, "toaddr", "", "Э/почта для отправки сообщений срабатываний триггера.")
+	
+	flag.Parse()
+	if store == "" {		
+		store="labirint"
+	}	
+	if toaddr == "" {
+		toaddr="ilnursoft@gmail.com"
+	} 
+	return true
+}
+
 //---------------- END общие функции ---------------------
 
 func main() {
-	//	var books []Book
-	var tb TaskerBook
-
-	fmt.Println(tb)
-
-	toaddr := "i.saifutdinov@kazan.2gis.ru"
-	//sdir:="books"
-	namestore := "labirint"
+	var list_tasker []TaskerBook
+	
+	if !parse_args() {
+	   return
+ 	}
+	
+//---- инициализация переменных
+	namestore := store
 	namefurls := namestore + "-url.cfg"
 	namelogfile := namestore + ".log"
+//---- END инициализация переменных		
 
 	LogFile = InitLogFile(namelogfile) // инициализация лог файла
 	LogFile.Println("Starting programm")
+	
+	LogFile.Println("Имя магазина store: ",store)
+	LogFile.Println("Э/почта для отправки уведомлений: ",toaddr)	
 
 	// получаем задания из файла
-	list_tasker := readtaskerbookcfg(namefurls)
-
-	fmt.Println(list_tasker)
-
+	list_tasker = readtaskerbookcfg(namefurls)
+	
 	//получение данных книжек
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].Getlabirint(list_tasker[i].url)
 		namef := namestore + ".csv"
 		list_tasker[i].savetocsvfile(namef)
-	}
-
-	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].print()
 	}
 
