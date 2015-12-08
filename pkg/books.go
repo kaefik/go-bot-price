@@ -209,7 +209,7 @@ func (task *TaskerBook) Genmessage() string {
 		b := task.Book
 		sprice = strconv.Itoa(b.price)
 		spricedisc = strconv.Itoa(b.pricediscount)
-		smegtrigger = "Сбработал триггер по книге: \n\n" + "Автор: " + b.autor + "\n" + "Название: " + b.name + "\n" + "Цена: " + sprice + "\n" + "Цена со скидкой: " + spricedisc + "Ссылка: " + task.Url + "\n\n"
+		smegtrigger = "Сбработал триггер по книге: \n\n" + "Автор: " + b.autor + "\n" + "Название: " + b.name + "\n" + "Цена: " + sprice + "\n" + "Цена со скидкой: " + spricedisc +"\n" +  "Ссылка: " + task.Url + "\n\n"
 		sprice = strconv.Itoa(task.Tasker.price)
 		smegtrigger0 = "Условие триггера: " + task.uslovie + "\n Цена триггера: " + sprice + "\n\n"
 		smsg = smegtrigger + smegtrigger0

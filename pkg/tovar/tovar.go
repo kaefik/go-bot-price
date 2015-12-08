@@ -2,7 +2,7 @@
 package tovar
 
 import (
-	"fmt"
+//	"fmt"
 	"log"
 	"os"
 	"io"
@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 	"net/smtp"
-//	"github.com/ddo/pick"
+	"github.com/ddo/pick"
 	"io/ioutil"
 	"golang.org/x/net/html/charset"
 )
@@ -53,29 +53,50 @@ func TriggerisUslovie(tb []TaskerTovar) []TaskerTovar {
 
 // ---------------  парсинг магазина Лабиринт
 //получение данных книги из магазина лабиринт по урлу url
-func (dbook *Tovar) GetdataTovarfromurl(url string) {
+func (this *Tovar) GetdataTovarfromurl(url string) {
+	var ss []string
 	if url == "" {
 		return
 	}	
 	body := gethtmlpage(url)
 	shtml := string(body)
 	
-	fmt.Println(shtml)
+//	fmt.Println(shtml)
 	
-//	scena, _ := pick.PickText(&pick.Option{ // текст цены книги
-//		&shtml,
-//		"span",
-//		&pick.Attr{
-//			"itemprop",
-//			"price",
-//		},
-//	})
+	//<div class="q-fixed-name no-mobile">
 	
-//	stitle, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "name"}})
+	sname, _ := pick.PickText(&pick.Option{ // текст цены книги
+		&shtml,
+		"div",
+		&pick.Attr{
+			"class",
+			"q-fixed-name no-mobile",
+		},
+	})
+    
+	
+	
+	for i:=0;i<len(sname);i++ {
+		if strings.TrimSpace(sname[i])!="" {  // удаление пробелов
+			ss=append(ss,sname[i])
+		}
+	}
+	
+    this.name=ss[0]	
+	
+	sprice, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "price"}})
+	
+	ss=make([]string,0)
+	for i:=0;i<len(sprice);i++ {
+		if strings.TrimSpace(sprice[i])!="" {  // удаление пробелов
+			ss=append(ss,sprice[i])
+		}
+	}
+	
+	if len(ss)>0 {
+		this.price,_=strconv.Atoi(ss[0])
+	}
 
-//	}
-//	vv := strings.Split(scena[0], " ")
-//	dbook.price, _ = strconv.Atoi(vv[1])
 	return
 }
 
@@ -97,7 +118,6 @@ func (db *Tovar) Savetocsvfile(namef string) error {
 		// path/to/whatever does not exist
 		fileflag = true
 	}
-
 	file, err := os.OpenFile(namef, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		// handle the error here
@@ -170,7 +190,7 @@ func (task *TaskerTovar) Genmessage() string {
 		b := task.Tovar
 		sprice = strconv.Itoa(b.price)
 		spricedisc = strconv.Itoa(b.pricediscount)
-		smegtrigger = "Сбработал триггер по книге: \n\n" +  "Название: " + b.name + "\n" + "Цена: " + sprice + "\n" + "Цена со скидкой: " + spricedisc + "Ссылка: " + task.Url + "\n\n"
+		smegtrigger = "Сбработал триггер по товару: \n" +  "Название: " + b.name + "\n" + "Цена: " + sprice + "\n" + "Цена со скидкой: " + spricedisc + "\n" +  "Ссылка: " + task.Url + "\n\n"
 		sprice = strconv.Itoa(task.Tasker.price)
 		smegtrigger0 = "Условие триггера: " + task.uslovie + "\n Цена триггера: " + sprice + "\n\n"
 		smsg = smegtrigger + smegtrigger0
@@ -249,18 +269,6 @@ func readfiletxt(namef string) string {
 	return string(bs)
 }
 
-////сохранение строки str в файл с именем namef
-//func savestrtofile(namef string, str string) error {
-//	file, err := os.Create(namef)
-//	if err != nil {
-//		// handle the error here
-//		return err
-//	}
-//	defer file.Close()
-
-//	file.WriteString(str)
-//	return err
-//}
 
 // инициализация файла логов
 func InitLogFile(namef string) *log.Logger {
@@ -289,11 +297,10 @@ func Readtaskercfg(namef string) []TaskerTovar {
 	return res
 }
 
-
-// вызов парсинга книжного магазина
-func RunTovar(namestore string,toaddr string) {
+// предварительная обработка 
+func RunTovarPre(list_tasker []TaskerTovar,namestore string,toaddr string) []TaskerTovar {
 	//---- инициализация переменных	
-	var list_tasker []TaskerTovar
+//	var list_tasker []TaskerTovar
 	
 	namefurls := namestore + "-url.cfg"
 	namelogfile := namestore + ".log"
@@ -307,15 +314,26 @@ func RunTovar(namestore string,toaddr string) {
 
 	// получаем задания из файла
 	list_tasker = Readtaskercfg(namefurls)
-	fmt.Println(list_tasker)
-	//получение данных книжек
+//	fmt.Println(list_tasker)
+	return list_tasker
+}
+
+//получение данных товаров
+func RunTovarGetDataEldorado(list_tasker []TaskerTovar,namestore string,toaddr string) []TaskerTovar {
+	//---- инициализация переменных	
+//	var list_tasker []TaskerTovar
+		//получение данных книжек
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromurl(list_tasker[i].Url)
 		namef := namestore + ".csv"
 		list_tasker[i].Savetocsvfile(namef)
 		list_tasker[i].Print()
 	}
+	return list_tasker
+}
 
+// окончательная обработка
+func RunTovarEnd(list_tasker []TaskerTovar,namestore string,toaddr string) []TaskerTovar {
 	//проверка на наличии срабатываний
 	list_tasker = TriggerisUslovie(list_tasker)
 
@@ -323,6 +341,21 @@ func RunTovar(namestore string,toaddr string) {
 		LogFile.Println(list_tasker[i].Genmessage())
 		list_tasker[i].Sendmail(toaddr)
 	}
-
 	LogFile.Println("The end....!\n")
+	return list_tasker
+}
+
+// вызов парсинга книжного магазина
+func RunTovar(namestore string,toaddr string) {
+	//---- инициализация переменных	
+	var list_tasker []TaskerTovar
+	
+	list_tasker=RunTovarPre(list_tasker,namestore,toaddr)
+	
+	switch namestore {			
+		case "eldorado": list_tasker=RunTovarGetDataEldorado(list_tasker,namestore,toaddr)
+		default: return
+	}	
+	RunTovarEnd(list_tasker,namestore,toaddr)
+	
 }

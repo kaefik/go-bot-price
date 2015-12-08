@@ -28,8 +28,7 @@ var (
 // функция парсинга аргументов программы
 func parse_args() bool {
 	flag.StringVar(&store, "store", "", "Название магазина по которому будут мониторить цены.")
-	flag.StringVar(&toaddr, "toaddr", "", "Э/почта для отправки сообщений срабатываний триггера.")
-	
+	flag.StringVar(&toaddr, "toaddr", "", "Э/почта для отправки сообщений срабатываний триггера.")	
 	flag.Parse()
 	if store == "" {		
 		store="labirint"
@@ -50,11 +49,19 @@ func main() {
 	
 	if !parse_args() {
 	   return
- 	}
+ 	}	
+	
+	///-------- для теста
+	
+	store="eldorado"
+			
+	///-------- END для теста
+	
+	
 	
 	switch store {	
 		case "labirint": books.RunBooks(store,toaddr) // вызов парсинга книжного магазина
-		case "eldorado": tovar.RunTovar(store,toaddr) // вызов парсинга магазина электроники
+		default: tovar.RunTovar(store,toaddr) // вызов парсинга магазина электроники
 	}
 
 }
