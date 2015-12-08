@@ -16,7 +16,7 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-// структура задания с информацией по книге
+// структура задания с информацией по товару
 type TaskerTovar struct {
 	Url string // ссылка на источник данных
 	Tovar
@@ -51,59 +51,10 @@ func TriggerisUslovie(tb []TaskerTovar) []TaskerTovar {
 	return tb
 }
 
-// ---------------  парсинг магазина Лабиринт
-//получение данных книги из магазина лабиринт по урлу url
-func (this *Tovar) GetdataTovarfromurl(url string) {
-	var ss []string
-	if url == "" {
-		return
-	}	
-	body := gethtmlpage(url)
-	shtml := string(body)
-	
-//	fmt.Println(shtml)
-	
-	//<div class="q-fixed-name no-mobile">
-	
-	sname, _ := pick.PickText(&pick.Option{ // текст цены книги
-		&shtml,
-		"div",
-		&pick.Attr{
-			"class",
-			"q-fixed-name no-mobile",
-		},
-	})
-    
-	
-	
-	for i:=0;i<len(sname);i++ {
-		if strings.TrimSpace(sname[i])!="" {  // удаление пробелов
-			ss=append(ss,sname[i])
-		}
-	}
-	
-    this.name=ss[0]	
-	
-	sprice, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "price"}})
-	
-	ss=make([]string,0)
-	for i:=0;i<len(sprice);i++ {
-		if strings.TrimSpace(sprice[i])!="" {  // удаление пробелов
-			ss=append(ss,sprice[i])
-		}
-	}
-	
-	if len(ss)>0 {
-		this.price,_=strconv.Atoi(ss[0])
-	}
 
-	return
-}
+//// -----------  функции для Tovar
 
-//// --------------- END  парсинг магазина Лабиринт
-
-//// -----------  функции для Book
-
+// вывод  в файл лога и на экран информации о товаре
 func (book0 *Tovar) Print() {
 	LogFile.Println("Название товара: ", book0.name)
 	LogFile.Println("Цена: ", book0.price)
@@ -135,7 +86,7 @@ func (db *Tovar) Savetocsvfile(namef string) error {
 	return err	
 }
 
-//// ----------- END функции для Book
+//// ----------- END функции для Tovar
 
 
 
@@ -173,7 +124,7 @@ func (task *Tasker) isTrue(book0 Tovar) {
 
 //// ----------- END  функции для Tasker
 
-//// -----------  функции для TaskerBook
+//// -----------  функции для TaskerTovar
 
 //func (tb *TaskerBook) Print() {
 //	tb.Book.Print()
@@ -207,7 +158,8 @@ func (task *TaskerTovar) Sendmail(toaddr string) {
 	return
 }
 
-//// ----------- END  функции для TaskerBook
+//// ----------- END  функции для TaskerTovar
+
 
 ////---------------- общие функции ---------------------
 
@@ -318,20 +270,6 @@ func RunTovarPre(list_tasker []TaskerTovar,namestore string,toaddr string) []Tas
 	return list_tasker
 }
 
-//получение данных товаров
-func RunTovarGetDataEldorado(list_tasker []TaskerTovar,namestore string,toaddr string) []TaskerTovar {
-	//---- инициализация переменных	
-//	var list_tasker []TaskerTovar
-		//получение данных книжек
-	for i := 0; i < len(list_tasker); i++ {
-		list_tasker[i].GetdataTovarfromurl(list_tasker[i].Url)
-		namef := namestore + ".csv"
-		list_tasker[i].Savetocsvfile(namef)
-		list_tasker[i].Print()
-	}
-	return list_tasker
-}
-
 // окончательная обработка
 func RunTovarEnd(list_tasker []TaskerTovar,namestore string,toaddr string) []TaskerTovar {
 	//проверка на наличии срабатываний
@@ -345,7 +283,7 @@ func RunTovarEnd(list_tasker []TaskerTovar,namestore string,toaddr string) []Tas
 	return list_tasker
 }
 
-// вызов парсинга книжного магазина
+// вызов парсинга книжного магазина  - сюда добавляем вызов для новых магазинов для которых можем парсить
 func RunTovar(namestore string,toaddr string) {
 	//---- инициализация переменных	
 	var list_tasker []TaskerTovar
@@ -354,8 +292,122 @@ func RunTovar(namestore string,toaddr string) {
 	
 	switch namestore {			
 		case "eldorado": list_tasker=RunTovarGetDataEldorado(list_tasker,namestore,toaddr)
+		case "dns": list_tasker=RunTovarGetDataDns(list_tasker,namestore,toaddr)
 		default: return
 	}	
 	RunTovarEnd(list_tasker,namestore,toaddr)
 	
 }
+
+
+// ---------------  парсинг магазинов ( состоит из двух функций RunTovarGetDataНазваниеМагазина  и GetdataTovarfromНазваниеМагазин
+
+//получение данных товаров из магазина Эльдорадо
+func RunTovarGetDataEldorado(list_tasker []TaskerTovar,namestore string,toaddr string) []TaskerTovar {
+		//получение данных товара
+		namef := namestore + ".csv"
+	for i := 0; i < len(list_tasker); i++ {
+		list_tasker[i].GetdataTovarfromEldorado(list_tasker[i].Url)  // <-- тут меняем на нужную функцию парсинга		
+		list_tasker[i].Savetocsvfile(namef)
+		list_tasker[i].Print()
+	}
+	return list_tasker
+}
+
+//получение данных товара из магазина Эльдорадо по урлу url
+func (this *Tovar) GetdataTovarfromEldorado(url string) {
+	var ss []string
+	if url == "" {
+		return
+	}	
+	body := gethtmlpage(url)
+	shtml := string(body)
+
+	sname, _ := pick.PickText(&pick.Option{ // текст цены книги
+		&shtml,
+		"div",
+		&pick.Attr{
+			"class",
+			"q-fixed-name no-mobile",
+		},
+	})	
+	
+	for i:=0;i<len(sname);i++ {
+		if strings.TrimSpace(sname[i])!="" {  // удаление пробелов
+			ss=append(ss,sname[i])
+		}
+	}
+	
+    this.name=ss[0]	
+	
+	sprice, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "price"}})
+	
+	ss=make([]string,0)
+	for i:=0;i<len(sprice);i++ {
+		if strings.TrimSpace(sprice[i])!="" {  // удаление пробелов
+			ss=append(ss,sprice[i])
+		}
+	}
+	
+	if len(ss)>0 {
+		this.price,_=strconv.Atoi(ss[0])
+	}
+
+	return
+}
+
+//------ парсинг ДНС
+//получение данных товаров из магазина ДНС
+func RunTovarGetDataDns(list_tasker []TaskerTovar,namestore string,toaddr string) []TaskerTovar {
+		//получение данных товара
+	namef := namestore + ".csv"
+	for i := 0; i < len(list_tasker); i++ {
+		list_tasker[i].GetdataTovarfromDns(list_tasker[i].Url)  // <-- тут меняем на нужную функцию парсинга		
+		list_tasker[i].Savetocsvfile(namef)
+		list_tasker[i].Print()
+	}
+	return list_tasker
+}
+
+//получение данных товара из магазина ДНС по урлу url
+func (this *Tovar) GetdataTovarfromDns(url string) {
+	var ss []string
+	if url == "" {
+		return
+	}	
+	body := gethtmlpage(url)
+	shtml := string(body)
+
+	sname, _ := pick.PickText(&pick.Option{ // текст цены книги
+		&shtml,
+		"h1",
+		&pick.Attr{
+			"class",
+			"page-title price-item-title",
+		},
+	})	
+	
+	for i:=0;i<len(sname);i++ {
+		if strings.TrimSpace(sname[i])!="" {  // удаление пробелов
+			ss=append(ss,sname[i])
+		}
+	}	
+    this.name=ss[0]	
+	
+//	sprice, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "price"}})
+	
+//	ss=make([]string,0)
+//	for i:=0;i<len(sprice);i++ {
+//		if strings.TrimSpace(sprice[i])!="" {  // удаление пробелов
+//			ss=append(ss,sprice[i])
+//		}
+//	}
+	
+//	if len(ss)>0 {
+//		this.price,_=strconv.Atoi(ss[0])
+//	}
+
+	return
+}
+
+//// --------------- END  парсинг магазинов

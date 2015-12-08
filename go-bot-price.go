@@ -53,7 +53,7 @@ func main() {
 	
 	///-------- для теста
 	
-	store="eldorado"
+	store="dns"
 			
 	///-------- END для теста
 	
