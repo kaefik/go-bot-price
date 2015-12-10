@@ -53,7 +53,7 @@ func main() {
 	
 	///-------- для теста
 	
-	store="ulmart"
+	store="citilink"
 			
 	///-------- END для теста
 	

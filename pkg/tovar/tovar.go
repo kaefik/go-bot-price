@@ -2,7 +2,7 @@
 package tovar
 
 import (
-	"fmt"
+//	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -261,8 +261,7 @@ func RunTovarPre(list_tasker []TaskerTovar, namestore string, toaddr string) []T
 	LogFile.Println("Э/почта для отправки уведомлений: ", toaddr)
 
 	// получаем задания из файла
-	list_tasker = Readtaskercfg(namefurls)
-	//	fmt.Println(list_tasker)
+	list_tasker = Readtaskercfg(namefurls)	
 	return list_tasker
 }
 
@@ -293,6 +292,8 @@ func RunTovar(namestore string, toaddr string) {
 		list_tasker = RunTovarGetDataDns(list_tasker, namestore, toaddr)
 	case "ulmart":
 		list_tasker = RunTovarGetDataUlmart(list_tasker, namestore, toaddr)
+	case "citilink":
+		list_tasker = RunTovarGetDataCitilink(list_tasker, namestore, toaddr)		
 	default:
 		return
 	}
@@ -399,8 +400,7 @@ func (this *Tovar) GetdataTovarfromDns(url string) {
 	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")
 	
 	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],".")
-		fmt.Println(sprice1)
+		sprice1:=strings.Split(sprice[0],".")		
 		this.price, _ = strconv.Atoi(sprice1[0])	
 	}
 	
@@ -444,13 +444,46 @@ func (this *Tovar) GetdataTovarfromUlmart(url string) {
 	//    <meta itemprop="price" content="660">
 	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")	
 	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],".")
-		fmt.Println(sprice1)
+		sprice1:=strings.Split(sprice[0],".")		
 		this.price, _ = strconv.Atoi(sprice1[0])	
 	}
-//	this.price, _ = strconv.Atoi(sprice[0])
+	return
+}
+
+//------ парсинг Cитилинк
+//получение данных товаров из магазина Cитилинк
+func RunTovarGetDataCitilink(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
+	//получение данных товара
+	namef := namestore + ".csv"
+	for i := 0; i < len(list_tasker); i++ {
+		list_tasker[i].GetdataTovarfromCitilink(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
+		list_tasker[i].Savetocsvfile(namef)
+		list_tasker[i].Print()
+	}
+	return list_tasker
+}
+
+//получение данных товара из магазина Cитилинк по урлу url
+func (this *Tovar) GetdataTovarfromCitilink(url string) {
+	if url == "" {
+		return
+	}
+	body := gethtmlpage(url)
+	shtml := string(body)
+			
+//	<meta itemprop="name" content="Подгузники MERRIES Large" />
+	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "name"}}, "content")
+	this.name = sname[0]
+
+	//    <meta itemprop="price" content="1540.00" />
+	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")	
+	if len(sprice)>0 {
+		sprice1:=strings.Split(sprice[0],".")		
+		this.price, _ = strconv.Atoi(sprice1[0])	
+	}
 
 	return
 }
+
 
 //// --------------- END  парсинг магазинов
