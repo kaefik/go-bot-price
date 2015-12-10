@@ -2,7 +2,7 @@
 package tovar
 
 import (
-//	"fmt"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -295,7 +295,9 @@ func RunTovar(namestore string, toaddr string) {
 	case "citilink":
 		list_tasker = RunTovarGetDataCitilink(list_tasker, namestore, toaddr)		
 	case "mvideo":
-		list_tasker = RunTovarGetDataMvideo(list_tasker, namestore, toaddr)				
+		list_tasker = RunTovarGetDataMvideo(list_tasker, namestore, toaddr)		
+	case "aliexpress":
+		list_tasker = RunTovarGetDataAliexpress(list_tasker, namestore, toaddr)						
 	default:
 		return
 	}
@@ -532,6 +534,64 @@ func (this *Tovar) GetdataTovarfromMvideo(url string) {
 	return
 }
 
+
+//------ парсинг aliexpress
+//получение данных товаров из магазина Aliexpress
+func RunTovarGetDataAliexpress(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
+	//получение данных товара
+	namef := namestore + ".csv"
+	for i := 0; i < len(list_tasker); i++ {
+		list_tasker[i].GetdataTovarfromAliexpress(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
+		list_tasker[i].Savetocsvfile(namef)
+		list_tasker[i].Print()
+	}
+	return list_tasker
+}
+
+//получение данных товара из магазина Aliexpress по урлу url
+func (this *Tovar) GetdataTovarfromAliexpress(url string) {
+	if url == "" {
+		return
+	}
+	body := gethtmlpage(url)
+	shtml := string(body)
+			
+//	<h1 class="product-name" itemprop="name">
+	sname, _ := pick.PickText(&pick.Option{ 
+		&shtml,
+		"h1",
+		&pick.Attr{
+			"class",
+			"product-name",
+		},
+	})
+	this.name = sname[0]
+
+	//    <span id="sku-price" itemprop="price">56.99</span>
+
+	sprice, _ := pick.PickText(&pick.Option{ 
+		&shtml,
+		"span",
+		&pick.Attr{
+			"itemprop",
+			"price",
+		},
+	})
+	
+	fmt.Println(sprice)
+	
+	if len(sprice)>0 {
+		sprice1:=strings.Split(sprice[0],",")	
+		fmt.Println(strings.Trim(sprice1[0]," "))
+//		sss:=sprice1[0]
+		
+		fmt.Println(strings.Trim(sprice1[0], " "))
+			
+		this.price, _ = strconv.Atoi(sprice1[0])	
+	}
+
+	return
+}
 
 
 //// --------------- END  парсинг магазинов

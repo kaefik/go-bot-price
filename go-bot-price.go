@@ -52,7 +52,7 @@ func main() {
  	}	
 	
 	///-------- для теста	
-//		store="mvideo"	
+//		store="aliexpress"	
 	///-------- END для теста
 	
 	
