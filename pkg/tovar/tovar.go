@@ -160,6 +160,18 @@ func (task *TaskerTovar) Sendmail(toaddr string) {
 
 ////---------------- общие функции ---------------------
 
+//удаление пробелов из строки s
+func delspacefromstring(s string) string{
+	r:=[]rune(s)
+	rnew:=make([]rune,0)
+	for i:=0;i<len(r);i++{
+		if (r[i]!=160) && (r[i]!=32) { 
+			rnew=append(rnew,r[i])
+		}
+	}
+	return string(rnew)
+}
+
 //отправка почты через яндекс темой stema сообщение smsg адресату toaddr
 func sendmailyandex(stema, smsg, toaddr string) bool {
 	auth := smtp.PlainAuth("", "magazinebot@yandex.ru", "qwe123!!", "smtp.yandex.ru")
@@ -582,12 +594,11 @@ func (this *Tovar) GetdataTovarfromAliexpress(url string) {
 	
 	if len(sprice)>0 {
 		sprice1:=strings.Split(sprice[0],",")	
-		fmt.Println(strings.Trim(sprice1[0]," "))
-//		sss:=sprice1[0]
+		fmt.Println(sprice1)
+		fmt.Println(delspacefromstring(sprice1[0]))
 		
-		fmt.Println(strings.Trim(sprice1[0], " "))
 			
-		this.price, _ = strconv.Atoi(sprice1[0])	
+		this.price, _ = strconv.Atoi(delspacefromstring(sprice1[0]))	
 	}
 
 	return
