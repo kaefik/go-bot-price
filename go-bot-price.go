@@ -53,7 +53,7 @@ func main() {
 	
 	///-------- для теста
 	
-	store="dns"
+	store="ulmart"
 			
 	///-------- END для теста
 	
