@@ -51,10 +51,8 @@ func main() {
 	   return
  	}	
 	
-	///-------- для теста
-	
-	store="citilink"
-			
+	///-------- для теста	
+//		store="mvideo"	
 	///-------- END для теста
 	
 	

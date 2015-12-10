@@ -294,6 +294,8 @@ func RunTovar(namestore string, toaddr string) {
 		list_tasker = RunTovarGetDataUlmart(list_tasker, namestore, toaddr)
 	case "citilink":
 		list_tasker = RunTovarGetDataCitilink(list_tasker, namestore, toaddr)		
+	case "mvideo":
+		list_tasker = RunTovarGetDataMvideo(list_tasker, namestore, toaddr)				
 	default:
 		return
 	}
@@ -484,6 +486,52 @@ func (this *Tovar) GetdataTovarfromCitilink(url string) {
 
 	return
 }
+
+//------ парсинг МВидео
+//получение данных товаров из магазина МВидео
+func RunTovarGetDataMvideo(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
+	//получение данных товара
+	namef := namestore + ".csv"
+	for i := 0; i < len(list_tasker); i++ {
+		list_tasker[i].GetdataTovarfromMvideo(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
+		list_tasker[i].Savetocsvfile(namef)
+		list_tasker[i].Print()
+	}
+	return list_tasker
+}
+
+//получение данных товара из магазина МВидео по урлу url
+func (this *Tovar) GetdataTovarfromMvideo(url string) {
+	if url == "" {
+		return
+	}
+	body := gethtmlpage(url)
+	shtml := string(body)
+			
+//	<meta property="og:title" content="Ультрабук ASUS Zenbook UX32LA-R3094H"/>
+	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"property", "og:title"}}, "content")
+	this.name = sname[0]
+
+	//    <strong class="product-price-current">43990</strong>
+//	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "strong", &pick.Attr{"class", "product-price-current"}},)	
+	
+	sprice, _ := pick.PickText(&pick.Option{ 
+		&shtml,
+		"strong",
+		&pick.Attr{
+			"class",
+			"product-price-current",
+		},
+	})
+	
+	if len(sprice)>0 {
+		sprice1:=strings.Split(sprice[0],".")		
+		this.price, _ = strconv.Atoi(sprice1[0])	
+	}
+
+	return
+}
+
 
 
 //// --------------- END  парсинг магазинов
