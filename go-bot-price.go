@@ -52,7 +52,7 @@ func main() {
  	}	
 	
 	///-------- для теста	
-//		store="aliexpress"	
+//		store="dns"	
 	///-------- END для теста
 	
 	

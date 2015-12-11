@@ -351,7 +351,10 @@ func RunBooks(namestore string,toaddr string) {
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].Getlabirint(list_tasker[i].Url)
 		namef := namestore + ".csv"
-		list_tasker[i].Savetocsvfile(namef)
+		if _, err := os.Stat(namestore); os.IsNotExist(err) {
+			os.Mkdir(namestore,0666)
+		}
+		list_tasker[i].Savetocsvfile(namestore+"\\"+namef)
 		list_tasker[i].Print()
 	}
 

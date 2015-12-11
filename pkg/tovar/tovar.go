@@ -380,7 +380,10 @@ func RunTovarGetDataDns(list_tasker []TaskerTovar, namestore string, toaddr stri
 	namef := namestore + ".csv"
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromDns(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
-		list_tasker[i].Savetocsvfile(namef)
+		if _, err := os.Stat(namestore); os.IsNotExist(err) {
+			os.Mkdir(namestore,0666)
+		}
+		list_tasker[i].Savetocsvfile(namestore+"\\"+namef)	
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -432,7 +435,10 @@ func RunTovarGetDataUlmart(list_tasker []TaskerTovar, namestore string, toaddr s
 	namef := namestore + ".csv"
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromUlmart(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
-		list_tasker[i].Savetocsvfile(namef)
+		if _, err := os.Stat(namestore); os.IsNotExist(err) {
+			os.Mkdir(namestore,0666)
+		}
+		list_tasker[i].Savetocsvfile(namestore+"\\"+namef)	
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -473,7 +479,10 @@ func RunTovarGetDataCitilink(list_tasker []TaskerTovar, namestore string, toaddr
 	namef := namestore + ".csv"
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromCitilink(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
-		list_tasker[i].Savetocsvfile(namef)
+		if _, err := os.Stat(namestore); os.IsNotExist(err) {
+			os.Mkdir(namestore,0666)
+		}
+		list_tasker[i].Savetocsvfile(namestore+"\\"+namef)	
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -508,7 +517,10 @@ func RunTovarGetDataMvideo(list_tasker []TaskerTovar, namestore string, toaddr s
 	namef := namestore + ".csv"
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromMvideo(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
-		list_tasker[i].Savetocsvfile(namef)
+		if _, err := os.Stat(namestore); os.IsNotExist(err) {
+			os.Mkdir(namestore,0666)
+		}
+		list_tasker[i].Savetocsvfile(namestore+"\\"+namef)		
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -554,7 +566,10 @@ func RunTovarGetDataAliexpress(list_tasker []TaskerTovar, namestore string, toad
 	namef := namestore + ".csv"
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromAliexpress(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
-		list_tasker[i].Savetocsvfile(namef)
+        if _, err := os.Stat(namestore); os.IsNotExist(err) {
+			os.Mkdir(namestore,0666)
+		}
+		list_tasker[i].Savetocsvfile(namestore+"\\"+namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
