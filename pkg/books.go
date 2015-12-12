@@ -11,7 +11,7 @@ import (
 	"time"	
 	"log"
 	"io"
-	"github.com/ddo/pick"
+	"go-bot-price/pkg/pick"
 	"golang.org/x/net/html/charset"
 )
 
