@@ -37,6 +37,14 @@ type Tasker struct {
 	result  bool   // результат срабатывания триггера, если true , то триггер сработал
 }
 
+// конфигурация почты для отправки срабатываний триггера
+type MailCfg struct {
+	smail string  // почта 
+	spas string  // пароль
+	sserv string  // сервер
+	sport string  // порт	
+}
+
 var LogFile *log.Logger
 
 var Homedirs string // Рабочая папка где нах-ся триггеры и будут выводится результаты работы
@@ -175,13 +183,16 @@ func delspacefromstring(s string) string{
 
 //отправка почты через яндекс темой stema сообщение smsg адресату toaddr
 func sendmailyandex(stema, smsg, toaddr string) bool {
-	auth := smtp.PlainAuth("", "magazinebot@yandex.ru", "qwe123!!", "smtp.yandex.ru")
+	var mm MailCfg
+	mm.Readmailcfg("config.cfg") // параметры почты
+		
+	auth := smtp.PlainAuth("", mm.smail, mm.spas, mm.sserv)
 	to := []string{toaddr}
 	msg := []byte("To: " + toaddr + "\r\n" +
 		"Subject: " + stema + " \r\n" +
 		"\r\n" +
 		smsg + "\r\n")
-	err := smtp.SendMail("smtp.yandex.ru:25", auth, "magazinebot@yandex.ru", to, msg)
+	err := smtp.SendMail(mm.sserv+":"+mm.sport, auth, mm.smail, to, msg)
 	if err != nil {
 		panic(err)
 	}
@@ -256,6 +267,17 @@ func Readtaskercfg(namef string) []TaskerTovar {
 		res = append(res, t)
 	}
 	return res
+}
+
+// чтение из текстового конфиг файла config.cfg для почты
+func (mm *MailCfg) Readmailcfg(namef string) {	
+//magazinebot@yandex.ru;пароль;smtp.yandex.ru;25;
+	str := readfiletxt(namef)
+	s := strings.Split(str, ";")
+	mm.smail=s[0]
+	mm.spas=s[1]
+	mm.sserv=s[2]
+	mm.sport=s[3]
 }
 
 // предварительная обработка

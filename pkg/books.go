@@ -232,6 +232,10 @@ func (task *TaskerBook) Sendmail(toaddr string) {
 
 //отправка почты через яндекс темой stema сообщение smsg адресату toaddr
 func sendmailyandex(stema, smsg, toaddr string) bool {
+	// чтение файла настроек для почты config.cfg со строкой:
+	// magazinebot@yandex.ru;пароль;smtp.yandex.ru;25;
+	
+	
 	auth := smtp.PlainAuth("", "magazinebot@yandex.ru", "qwe123!!", "smtp.yandex.ru")
 	to := []string{toaddr}
 	msg := []byte("To: " + toaddr + "\r\n" +
