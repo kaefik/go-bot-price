@@ -10,9 +10,8 @@
 package main
 
 import (
-	"fmt"
+//	"fmt"
 	"flag"
-	"go-bot-price/pkg"
 	"go-bot-price/pkg/tovar"
 )
 
@@ -48,10 +47,6 @@ func parse_args() bool {
 
 func main() {
 	
-	var tv tovar.TaskerTovar
-	
-	fmt.Println(tv)
-	
 	if !parse_args() {
 	   return
  	}	
@@ -62,11 +57,6 @@ func main() {
 //		store="mvideo"	
 	///-------- END для теста
 	
+	tovar.RunTovar(store,toaddr)
 	
-	
-	switch store {	
-		case "labirint": books.RunBooks(store,toaddr) // вызов парсинга книжного магазина
-		default: tovar.RunTovar(store,toaddr) // вызов парсинга магазина электроники
 	}
-
-}

@@ -2,7 +2,7 @@
 package tovar
 
 import (
-	"fmt"
+//	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"go-bot-price/pkg/pick"
+	"go-bot-price/pkg"
 	"golang.org/x/net/html/charset"
 )
 
@@ -333,7 +333,9 @@ func RunTovar(namestore string, toaddr string) {
 	case "mvideo":
 		list_tasker = RunTovarGetDataMvideo(list_tasker, namestore, toaddr)		
 	case "aliexpress":
-		list_tasker = RunTovarGetDataAliexpress(list_tasker, namestore, toaddr)						
+		list_tasker = RunTovarGetDataAliexpress(list_tasker, namestore, toaddr)
+	case "labirint":
+		list_tasker = RunTovarGetDataLabirint(list_tasker, namestore, toaddr)							
 	default:
 		return
 	}
@@ -638,14 +640,8 @@ func (this *Tovar) GetdataTovarfromAliexpress(url string) {
 		},
 	})
 	
-	fmt.Println(sprice)
-	
 	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],",")	
-		fmt.Println(sprice1)
-		fmt.Println(delspacefromstring(sprice1[0]))
-		
-			
+		sprice1:=strings.Split(sprice[0],",")				
 		this.price, _ = strconv.Atoi(delspacefromstring(sprice1[0]))	
 	}
 
@@ -653,4 +649,146 @@ func (this *Tovar) GetdataTovarfromAliexpress(url string) {
 }
 
 
+//------ парсинг labirint
+//получение данных товаров из магазина Aliexpress
+func RunTovarGetDataLabirint(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
+	//получение данных товара
+	namef := namestore + ".csv"
+	dnamestore:=Homedirs+"\\"+namestore
+	for i := 0; i < len(list_tasker); i++ {
+		list_tasker[i].GetdataTovarfromLabirint(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
+		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
+			os.Mkdir(dnamestore,0666)
+		}
+		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Print()
+	}
+	return list_tasker
+}
+
+//получение данных товара из магазина Aliexpress по урлу url
+func (this *Tovar) GetdataTovarfromLabirint(url string) {
+	if url == "" {
+		return
+	}
+	body := gethtmlpage(url)
+	shtml := string(body)
+			
+//	<meta property="og:title" content="Приключения Алисы в Стране Чудес" />
+
+	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"property", "og:title"}}, "content")		
+	this.name = sname[0]
+	
+	scena, _ := pick.PickText(&pick.Option{ // текст цены книги
+		&shtml,
+		"span",
+		&pick.Attr{
+			"itemprop",
+			"price",
+		},
+	})
+	
+	scenaskidka, _ := pick.PickText(&pick.Option{ // текст цены со скидкой книги
+		&shtml,
+		"span",
+		&pick.Attr{
+			"class",
+			"buying-pricenew-val-number",
+		},
+	})
+
+//	sauthor, _ := pick.PickText(&pick.Option{ // текст описания книги
+//		&shtml,
+//		"span",
+//		&pick.Attr{
+//			"itemtype",
+//			"http://schema.org/ItemList",
+//		},
+//	})
+
+//	stitle, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "name"}})
+
+//	for i := 0; i < len(sauthor); i++ {
+//		switch sauthor[i] {
+//		case "Автор(ы)":
+//			dbook.autor = sauthor[i+1]
+//		case "Масса":
+//			dbook.ves, _ = strconv.Atoi(sauthor[i+1])
+//		case "Количество страниц":
+//			dbook.kolpages, _ = strconv.Atoi(sauthor[i+1])
+//		}
+//	}
+
+//	dbook.name = stitle[1]
+	if len(scenaskidka) > 0 {
+		this.pricediscount, _ = strconv.Atoi(scenaskidka[0])
+	} else {
+		this.pricediscount = 0
+	}
+	vv := strings.Split(scena[0], " ")
+	this.price, _ = strconv.Atoi(vv[1])
+	return
+}
+
+
 //// --------------- END  парсинг магазинов
+
+
+
+////получение данных книги из магазина лабиринт по урлу url
+//func (dbook *Book) Getlabirint(url string) {
+//	if url == "" {
+//		return
+//	}	
+//	body := gethtmlpage(url)
+//	shtml := string(body)
+//	scena, _ := pick.PickText(&pick.Option{ // текст цены книги
+//		&shtml,
+//		"span",
+//		&pick.Attr{
+//			"itemprop",
+//			"price",
+//		},
+//	})
+	
+//	scenaskidka, _ := pick.PickText(&pick.Option{ // текст цены со скидкой книги
+//		&shtml,
+//		"span",
+//		&pick.Attr{
+//			"class",
+//			"buying-pricenew-val-number",
+//		},
+//	})
+
+//	sauthor, _ := pick.PickText(&pick.Option{ // текст описания книги
+//		&shtml,
+//		"span",
+//		&pick.Attr{
+//			"itemtype",
+//			"http://schema.org/ItemList",
+//		},
+//	})
+
+//	stitle, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "name"}})
+
+//	for i := 0; i < len(sauthor); i++ {
+//		switch sauthor[i] {
+//		case "Автор(ы)":
+//			dbook.autor = sauthor[i+1]
+//		case "Масса":
+//			dbook.ves, _ = strconv.Atoi(sauthor[i+1])
+//		case "Количество страниц":
+//			dbook.kolpages, _ = strconv.Atoi(sauthor[i+1])
+//		}
+//	}
+
+//	dbook.name = stitle[1]
+//	if len(scenaskidka) > 0 {
+//		dbook.pricediscount, _ = strconv.Atoi(scenaskidka[0])
+//	} else {
+//		dbook.pricediscount = 0
+//	}
+//	vv := strings.Split(scena[0], " ")
+//	dbook.price, _ = strconv.Atoi(vv[1])
+//	return
+//}
