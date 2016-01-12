@@ -2,7 +2,8 @@
 package tovar
 
 import (
-//	"fmt"
+	//	"fmt"
+	"go-bot-price/pkg"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"go-bot-price/pkg"
+
 	"golang.org/x/net/html/charset"
 )
 
@@ -39,10 +40,10 @@ type Tasker struct {
 
 // конфигурация почты для отправки срабатываний триггера
 type MailCfg struct {
-	smail string  // почта 
-	spas string  // пароль
-	sserv string  // сервер
-	sport string  // порт	
+	smail string // почта
+	spas  string // пароль
+	sserv string // сервер
+	sport string // порт
 }
 
 var LogFile *log.Logger
@@ -50,6 +51,11 @@ var LogFile *log.Logger
 var Homedirs string // Рабочая папка где нах-ся триггеры и будут выводится результаты работы
 
 //------------ END Объявление типов и глобальных переменных
+
+// возвращает true если операционная система Windows
+func isWindows() bool {
+	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
+}
 
 //проверка триггеров по массиву полученных данных по книгах
 
@@ -170,12 +176,12 @@ func (task *TaskerTovar) Sendmail(toaddr string) {
 ////---------------- общие функции ---------------------
 
 //удаление пробелов из строки s
-func delspacefromstring(s string) string{
-	r:=[]rune(s)
-	rnew:=make([]rune,0)
-	for i:=0;i<len(r);i++{
-		if (r[i]!=160) && (r[i]!=32) { 
-			rnew=append(rnew,r[i])
+func delspacefromstring(s string) string {
+	r := []rune(s)
+	rnew := make([]rune, 0)
+	for i := 0; i < len(r); i++ {
+		if (r[i] != 160) && (r[i] != 32) {
+			rnew = append(rnew, r[i])
 		}
 	}
 	return string(rnew)
@@ -185,7 +191,7 @@ func delspacefromstring(s string) string{
 func sendmailyandex(stema, smsg, toaddr string) bool {
 	var mm MailCfg
 	mm.Readmailcfg("config.cfg") // параметры почты
-		
+
 	auth := smtp.PlainAuth("", mm.smail, mm.spas, mm.sserv)
 	to := []string{toaddr}
 	msg := []byte("To: " + toaddr + "\r\n" +
@@ -256,8 +262,14 @@ func InitLogFile(namef string) *log.Logger {
 // чтение из текстового конфиг файла заданий и возращает массив заданий Tasker
 func Readtaskercfg(namef string) []TaskerTovar {
 	var res []TaskerTovar
+	var vv []string
 	str := readfiletxt(namef)
-	vv := strings.Split(str, "\n")
+	if isWindows() {
+		vv = strings.Split(str, "\n")
+	} else {
+		vv = strings.Split(str, "\r\n")
+	}
+
 	for i := 0; i < len(vv); i++ {
 		s := strings.Split(vv[i], ";")
 		tt, _ := strconv.Atoi(s[2])
@@ -270,21 +282,21 @@ func Readtaskercfg(namef string) []TaskerTovar {
 }
 
 // чтение из текстового конфиг файла config.cfg для почты
-func (mm *MailCfg) Readmailcfg(namef string) {	
-//magazinebot@yandex.ru;пароль;smtp.yandex.ru;25;
+func (mm *MailCfg) Readmailcfg(namef string) {
+	//magazinebot@yandex.ru;пароль;smtp.yandex.ru;25;
 	str := readfiletxt(namef)
 	s := strings.Split(str, ";")
-	mm.smail=s[0]
-	mm.spas=s[1]
-	mm.sserv=s[2]
-	mm.sport=s[3]
+	mm.smail = s[0]
+	mm.spas = s[1]
+	mm.sserv = s[2]
+	mm.sport = s[3]
 }
 
 // предварительная обработка
 func RunTovarPre(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//---- инициализация переменных
-	namefurls := Homedirs+"\\"+namestore + "-url.cfg"
-	namelogfile := Homedirs+"\\"+namestore + ".log"
+	namefurls := Homedirs + "\\" + namestore + "-url.cfg"
+	namelogfile := Homedirs + "\\" + namestore + ".log"
 	////---- END инициализация переменных
 
 	LogFile = InitLogFile(namelogfile) // инициализация лог файла
@@ -292,12 +304,12 @@ func RunTovarPre(list_tasker []TaskerTovar, namestore string, toaddr string) []T
 
 	LogFile.Println("Имя магазина store: ", namestore)
 	LogFile.Println("Э/почта для отправки уведомлений: ", toaddr)
-	
+
 	LogFile.Println(namefurls)
 	LogFile.Println(namelogfile)
 
 	// получаем задания из файла
-	list_tasker = Readtaskercfg(namefurls)	
+	list_tasker = Readtaskercfg(namefurls)
 	return list_tasker
 }
 
@@ -329,13 +341,13 @@ func RunTovar(namestore string, toaddr string) {
 	case "ulmart":
 		list_tasker = RunTovarGetDataUlmart(list_tasker, namestore, toaddr)
 	case "citilink":
-		list_tasker = RunTovarGetDataCitilink(list_tasker, namestore, toaddr)		
+		list_tasker = RunTovarGetDataCitilink(list_tasker, namestore, toaddr)
 	case "mvideo":
-		list_tasker = RunTovarGetDataMvideo(list_tasker, namestore, toaddr)		
+		list_tasker = RunTovarGetDataMvideo(list_tasker, namestore, toaddr)
 	case "aliexpress":
 		list_tasker = RunTovarGetDataAliexpress(list_tasker, namestore, toaddr)
 	case "labirint":
-		list_tasker = RunTovarGetDataLabirint(list_tasker, namestore, toaddr)							
+		list_tasker = RunTovarGetDataLabirint(list_tasker, namestore, toaddr)
 	default:
 		return
 	}
@@ -349,13 +361,13 @@ func RunTovar(namestore string, toaddr string) {
 func RunTovarGetDataEldorado(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore:=Homedirs+"\\"+namestore
+	dnamestore := Homedirs + "\\" + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromEldorado(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
-			os.Mkdir(dnamestore,0666)
+			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -408,18 +420,18 @@ func (this *Tovar) GetdataTovarfromEldorado(url string) {
 func RunTovarGetDataDns(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore:=Homedirs+"\\"+namestore
+	dnamestore := Homedirs + "\\" + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromDns(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
-			os.Mkdir(dnamestore,0666)
+			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
 }
-	
+
 //получение данных товара из магазина ДНС по урлу url
 func (this *Tovar) GetdataTovarfromDns(url string) {
 	var ss []string
@@ -445,16 +457,14 @@ func (this *Tovar) GetdataTovarfromDns(url string) {
 	}
 	this.name = ss[0]
 
-   //<meta itemprop="price" content="3190.00" />
+	//<meta itemprop="price" content="3190.00" />
 
 	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")
-	
-	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],".")		
-		this.price, _ = strconv.Atoi(sprice1[0])	
+
+	if len(sprice) > 0 {
+		sprice1 := strings.Split(sprice[0], ".")
+		this.price, _ = strconv.Atoi(sprice1[0])
 	}
-	
-	
 
 	return
 }
@@ -464,13 +474,13 @@ func (this *Tovar) GetdataTovarfromDns(url string) {
 func RunTovarGetDataUlmart(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore:=Homedirs+"\\"+namestore
+	dnamestore := Homedirs + "\\" + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromUlmart(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
-			os.Mkdir(dnamestore,0666)
+			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -484,8 +494,8 @@ func (this *Tovar) GetdataTovarfromUlmart(url string) {
 	}
 	body := gethtmlpage(url)
 	shtml := string(body)
-			
-//	<meta name="keywords" content="Подгузники Mepsi L (9-16 кг), 38 шт, Mepsi, артикул 3421456"/>
+
+	//	<meta name="keywords" content="Подгузники Mepsi L (9-16 кг), 38 шт, Mepsi, артикул 3421456"/>
 	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"name", "keywords"}}, "content")
 
 	for i := 0; i < len(sname); i++ {
@@ -496,10 +506,10 @@ func (this *Tovar) GetdataTovarfromUlmart(url string) {
 	this.name = ss[0]
 
 	//    <meta itemprop="price" content="660">
-	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")	
-	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],".")		
-		this.price, _ = strconv.Atoi(sprice1[0])	
+	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")
+	if len(sprice) > 0 {
+		sprice1 := strings.Split(sprice[0], ".")
+		this.price, _ = strconv.Atoi(sprice1[0])
 	}
 	return
 }
@@ -509,13 +519,13 @@ func (this *Tovar) GetdataTovarfromUlmart(url string) {
 func RunTovarGetDataCitilink(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore:=Homedirs+"\\"+namestore
+	dnamestore := Homedirs + "\\" + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromCitilink(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
-			os.Mkdir(dnamestore,0666)
+			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -528,16 +538,16 @@ func (this *Tovar) GetdataTovarfromCitilink(url string) {
 	}
 	body := gethtmlpage(url)
 	shtml := string(body)
-			
-//	<meta itemprop="name" content="Подгузники MERRIES Large" />
+
+	//	<meta itemprop="name" content="Подгузники MERRIES Large" />
 	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "name"}}, "content")
 	this.name = sname[0]
 
 	//    <meta itemprop="price" content="1540.00" />
-	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")	
-	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],".")		
-		this.price, _ = strconv.Atoi(sprice1[0])	
+	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"itemprop", "price"}}, "content")
+	if len(sprice) > 0 {
+		sprice1 := strings.Split(sprice[0], ".")
+		this.price, _ = strconv.Atoi(sprice1[0])
 	}
 
 	return
@@ -548,13 +558,13 @@ func (this *Tovar) GetdataTovarfromCitilink(url string) {
 func RunTovarGetDataMvideo(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore:=Homedirs+"\\"+namestore
+	dnamestore := Homedirs + "\\" + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromMvideo(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
-			os.Mkdir(dnamestore,0666)
+			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -567,15 +577,15 @@ func (this *Tovar) GetdataTovarfromMvideo(url string) {
 	}
 	body := gethtmlpage(url)
 	shtml := string(body)
-			
-//	<meta property="og:title" content="Ультрабук ASUS Zenbook UX32LA-R3094H"/>
+
+	//	<meta property="og:title" content="Ультрабук ASUS Zenbook UX32LA-R3094H"/>
 	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"property", "og:title"}}, "content")
 	this.name = sname[0]
 
 	//    <strong class="product-price-current">43990</strong>
-//	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "strong", &pick.Attr{"class", "product-price-current"}},)	
-	
-	sprice, _ := pick.PickText(&pick.Option{ 
+	//	sprice, _ := pick.PickAttr(&pick.Option{&shtml, "strong", &pick.Attr{"class", "product-price-current"}},)
+
+	sprice, _ := pick.PickText(&pick.Option{
 		&shtml,
 		"strong",
 		&pick.Attr{
@@ -583,28 +593,27 @@ func (this *Tovar) GetdataTovarfromMvideo(url string) {
 			"product-price-current",
 		},
 	})
-	
-	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],".")		
-		this.price, _ = strconv.Atoi(sprice1[0])	
+
+	if len(sprice) > 0 {
+		sprice1 := strings.Split(sprice[0], ".")
+		this.price, _ = strconv.Atoi(sprice1[0])
 	}
 
 	return
 }
-
 
 //------ парсинг aliexpress
 //получение данных товаров из магазина Aliexpress
 func RunTovarGetDataAliexpress(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore:=Homedirs+"\\"+namestore
+	dnamestore := Homedirs + "\\" + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromAliexpress(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
-			os.Mkdir(dnamestore,0666)
+			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -617,9 +626,9 @@ func (this *Tovar) GetdataTovarfromAliexpress(url string) {
 	}
 	body := gethtmlpage(url)
 	shtml := string(body)
-			
-//	<h1 class="product-name" itemprop="name">
-	sname, _ := pick.PickText(&pick.Option{ 
+
+	//	<h1 class="product-name" itemprop="name">
+	sname, _ := pick.PickText(&pick.Option{
 		&shtml,
 		"h1",
 		&pick.Attr{
@@ -631,7 +640,7 @@ func (this *Tovar) GetdataTovarfromAliexpress(url string) {
 
 	//    <span id="sku-price" itemprop="price">56.99</span>
 
-	sprice, _ := pick.PickText(&pick.Option{ 
+	sprice, _ := pick.PickText(&pick.Option{
 		&shtml,
 		"span",
 		&pick.Attr{
@@ -639,28 +648,27 @@ func (this *Tovar) GetdataTovarfromAliexpress(url string) {
 			"price",
 		},
 	})
-	
-	if len(sprice)>0 {
-		sprice1:=strings.Split(sprice[0],",")				
-		this.price, _ = strconv.Atoi(delspacefromstring(sprice1[0]))	
+
+	if len(sprice) > 0 {
+		sprice1 := strings.Split(sprice[0], ",")
+		this.price, _ = strconv.Atoi(delspacefromstring(sprice1[0]))
 	}
 
 	return
 }
-
 
 //------ парсинг labirint
 //получение данных товаров из магазина Aliexpress
 func RunTovarGetDataLabirint(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore:=Homedirs+"\\"+namestore
+	dnamestore := Homedirs + "\\" + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromLabirint(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
-			os.Mkdir(dnamestore,0666)
+			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore+"\\"+namef)
+		list_tasker[i].Savetocsvfile(dnamestore + string(os.PathSeparator) + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -673,12 +681,12 @@ func (this *Tovar) GetdataTovarfromLabirint(url string) {
 	}
 	body := gethtmlpage(url)
 	shtml := string(body)
-			
-//	<meta property="og:title" content="Приключения Алисы в Стране Чудес" />
 
-	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"property", "og:title"}}, "content")		
+	//	<meta property="og:title" content="Приключения Алисы в Стране Чудес" />
+
+	sname, _ := pick.PickAttr(&pick.Option{&shtml, "meta", &pick.Attr{"property", "og:title"}}, "content")
 	this.name = sname[0]
-	
+
 	scena, _ := pick.PickText(&pick.Option{ // текст цены книги
 		&shtml,
 		"span",
@@ -687,7 +695,7 @@ func (this *Tovar) GetdataTovarfromLabirint(url string) {
 			"price",
 		},
 	})
-	
+
 	scenaskidka, _ := pick.PickText(&pick.Option{ // текст цены со скидкой книги
 		&shtml,
 		"span",
@@ -697,29 +705,29 @@ func (this *Tovar) GetdataTovarfromLabirint(url string) {
 		},
 	})
 
-//	sauthor, _ := pick.PickText(&pick.Option{ // текст описания книги
-//		&shtml,
-//		"span",
-//		&pick.Attr{
-//			"itemtype",
-//			"http://schema.org/ItemList",
-//		},
-//	})
+	//	sauthor, _ := pick.PickText(&pick.Option{ // текст описания книги
+	//		&shtml,
+	//		"span",
+	//		&pick.Attr{
+	//			"itemtype",
+	//			"http://schema.org/ItemList",
+	//		},
+	//	})
 
-//	stitle, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "name"}})
+	//	stitle, _ := pick.PickText(&pick.Option{&shtml, "span", &pick.Attr{"itemprop", "name"}})
 
-//	for i := 0; i < len(sauthor); i++ {
-//		switch sauthor[i] {
-//		case "Автор(ы)":
-//			dbook.autor = sauthor[i+1]
-//		case "Масса":
-//			dbook.ves, _ = strconv.Atoi(sauthor[i+1])
-//		case "Количество страниц":
-//			dbook.kolpages, _ = strconv.Atoi(sauthor[i+1])
-//		}
-//	}
+	//	for i := 0; i < len(sauthor); i++ {
+	//		switch sauthor[i] {
+	//		case "Автор(ы)":
+	//			dbook.autor = sauthor[i+1]
+	//		case "Масса":
+	//			dbook.ves, _ = strconv.Atoi(sauthor[i+1])
+	//		case "Количество страниц":
+	//			dbook.kolpages, _ = strconv.Atoi(sauthor[i+1])
+	//		}
+	//	}
 
-//	dbook.name = stitle[1]
+	//	dbook.name = stitle[1]
 	if len(scenaskidka) > 0 {
 		this.pricediscount, _ = strconv.Atoi(scenaskidka[0])
 	} else {
@@ -730,16 +738,13 @@ func (this *Tovar) GetdataTovarfromLabirint(url string) {
 	return
 }
 
-
 //// --------------- END  парсинг магазинов
-
-
 
 ////получение данных книги из магазина лабиринт по урлу url
 //func (dbook *Book) Getlabirint(url string) {
 //	if url == "" {
 //		return
-//	}	
+//	}
 //	body := gethtmlpage(url)
 //	shtml := string(body)
 //	scena, _ := pick.PickText(&pick.Option{ // текст цены книги
@@ -750,7 +755,7 @@ func (this *Tovar) GetdataTovarfromLabirint(url string) {
 //			"price",
 //		},
 //	})
-	
+
 //	scenaskidka, _ := pick.PickText(&pick.Option{ // текст цены со скидкой книги
 //		&shtml,
 //		"span",
