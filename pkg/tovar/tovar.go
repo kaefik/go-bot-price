@@ -264,11 +264,15 @@ func Readtaskercfg(namef string) []TaskerTovar {
 	var res []TaskerTovar
 	var vv []string
 	str := readfiletxt(namef)
-	if isWindows() {
-		vv = strings.Split(str, "\n")
-	} else {
-		vv = strings.Split(str, "\r\n")
-	}
+	//	fmt.Println(namef)
+
+	//	fmt.Println(str)
+
+	//	if isWindows() {
+	vv = strings.Split(str, "\n")
+	//	} else {
+	//		vv = strings.Split(str, "\r\n")
+	//	}
 
 	for i := 0; i < len(vv); i++ {
 		s := strings.Split(vv[i], ";")
@@ -295,8 +299,8 @@ func (mm *MailCfg) Readmailcfg(namef string) {
 // предварительная обработка
 func RunTovarPre(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//---- инициализация переменных
-	namefurls := Homedirs + "\\" + namestore + "-url.cfg"
-	namelogfile := Homedirs + "\\" + namestore + ".log"
+	namefurls := Homedirs + string(os.PathSeparator) + namestore + "-url.cfg"
+	namelogfile := Homedirs + string(os.PathSeparator) + namestore + ".log"
 	////---- END инициализация переменных
 
 	LogFile = InitLogFile(namelogfile) // инициализация лог файла
@@ -361,13 +365,13 @@ func RunTovar(namestore string, toaddr string) {
 func RunTovarGetDataEldorado(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore := Homedirs + "\\" + namestore
+	dnamestore := Homedirs + string(os.PathSeparator) + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromEldorado(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
 			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
+		list_tasker[i].Savetocsvfile(dnamestore + string(os.PathSeparator) + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -420,13 +424,13 @@ func (this *Tovar) GetdataTovarfromEldorado(url string) {
 func RunTovarGetDataDns(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore := Homedirs + "\\" + namestore
+	dnamestore := Homedirs + string(os.PathSeparator) + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromDns(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
 			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
+		list_tasker[i].Savetocsvfile(dnamestore + string(os.PathSeparator) + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -474,13 +478,13 @@ func (this *Tovar) GetdataTovarfromDns(url string) {
 func RunTovarGetDataUlmart(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore := Homedirs + "\\" + namestore
+	dnamestore := Homedirs + string(os.PathSeparator) + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromUlmart(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
 			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
+		list_tasker[i].Savetocsvfile(dnamestore + string(os.PathSeparator) + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -519,13 +523,13 @@ func (this *Tovar) GetdataTovarfromUlmart(url string) {
 func RunTovarGetDataCitilink(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore := Homedirs + "\\" + namestore
+	dnamestore := Homedirs + string(os.PathSeparator) + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromCitilink(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
 			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
+		list_tasker[i].Savetocsvfile(dnamestore + string(os.PathSeparator) + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -558,13 +562,13 @@ func (this *Tovar) GetdataTovarfromCitilink(url string) {
 func RunTovarGetDataMvideo(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore := Homedirs + "\\" + namestore
+	dnamestore := Homedirs + string(os.PathSeparator) + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromMvideo(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
 			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
+		list_tasker[i].Savetocsvfile(dnamestore + string(os.PathSeparator) + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -607,13 +611,13 @@ func (this *Tovar) GetdataTovarfromMvideo(url string) {
 func RunTovarGetDataAliexpress(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore := Homedirs + "\\" + namestore
+	dnamestore := Homedirs + string(os.PathSeparator) + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromAliexpress(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
 			os.Mkdir(dnamestore, 0666)
 		}
-		list_tasker[i].Savetocsvfile(dnamestore + "\\" + namef)
+		list_tasker[i].Savetocsvfile(dnamestore + string(os.PathSeparator) + namef)
 		list_tasker[i].Print()
 	}
 	return list_tasker
@@ -662,7 +666,7 @@ func (this *Tovar) GetdataTovarfromAliexpress(url string) {
 func RunTovarGetDataLabirint(list_tasker []TaskerTovar, namestore string, toaddr string) []TaskerTovar {
 	//получение данных товара
 	namef := namestore + ".csv"
-	dnamestore := Homedirs + "\\" + namestore
+	dnamestore := Homedirs + string(os.PathSeparator) + namestore
 	for i := 0; i < len(list_tasker); i++ {
 		list_tasker[i].GetdataTovarfromLabirint(list_tasker[i].Url) // <-- тут меняем на нужную функцию парсинга
 		if _, err := os.Stat(dnamestore); os.IsNotExist(err) {
