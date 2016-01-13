@@ -10,9 +10,10 @@
 package main
 
 import (
-	//	"fmt"
 	"flag"
+	"fmt"
 	"go-bot-price/pkg/tovar"
+	"os"
 )
 
 ////------------ Объявление типов и глобальных переменных
@@ -43,6 +44,29 @@ func parse_args() bool {
 	return true
 }
 
+//возвращает список имен файлов в директории dirname
+func Getlistfileindirectory(dirname string) []string {
+	listfile := make([]string, 0)
+	d, err := os.Open(dirname)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer d.Close()
+	fi, err := d.Readdir(-1)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	for _, fi := range fi {
+		if fi.Mode().IsRegular() {
+			//fmt.Println(fi.Name(), fi.Size(), "bytes")
+			listfile = append(listfile, fi.Name())
+		}
+	}
+	return listfile
+}
+
 //---------------- END общие функции ---------------------
 
 func main() {
@@ -52,6 +76,9 @@ func main() {
 	}
 
 	tovar.Homedirs = hd
+
+	listff := Getlistfileindirectory(hd)
+	fmt.Println(listff)
 
 	///-------- для теста
 	//		store="mvideo"
