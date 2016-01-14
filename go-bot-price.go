@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"go-bot-price/pkg/tovar"
 	"os"
+	//	"strings"
 )
 
 ////------------ Объявление типов и глобальных переменных
@@ -67,6 +68,17 @@ func Getlistfileindirectory(dirname string) []string {
 	return listfile
 }
 
+// получение массив имен магазинов которые получаются из имен файлов формата: названиемагазина-url.cfg
+func GetNameStoreFromFilename(nf []string) []string {
+	reslist := make([]string, 0)
+	for _, v := range nf {
+		if v[len(v)-3:] == "cfg" {
+			reslist = append(reslist, v[:len(v)-8])
+		}
+	}
+	return reslist
+}
+
 //---------------- END общие функции ---------------------
 
 func main() {
@@ -78,12 +90,15 @@ func main() {
 	tovar.Homedirs = hd
 
 	listff := Getlistfileindirectory(hd)
-	fmt.Println(listff)
+	liststore := GetNameStoreFromFilename(listff)
 
 	///-------- для теста
 	//		store="mvideo"
 	///-------- END для теста
 
-	tovar.RunTovar(store, toaddr)
+	for i := 0; i < len(liststore); i++ {
+		store = liststore[i]
+		tovar.RunTovar(store, toaddr)
+	}
 
 }
