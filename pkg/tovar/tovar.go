@@ -275,12 +275,16 @@ func Readtaskercfg(namef string) []TaskerTovar {
 	//	}
 
 	for i := 0; i < len(vv); i++ {
-		s := strings.Split(vv[i], ";")
-		tt, _ := strconv.Atoi(s[2])
-		dt := Tasker{uslovie: s[1], price: tt, result: false}
-		t := TaskerTovar{Url: s[0]}
-		t.Tasker = dt
-		res = append(res, t)
+		if vv[i] != "" {
+			s := strings.Split(vv[i], ";")
+			if len(s) > 2 {
+				tt, _ := strconv.Atoi(s[2])
+				dt := Tasker{uslovie: s[1], price: tt, result: false}
+				t := TaskerTovar{Url: s[0]}
+				t.Tasker = dt
+				res = append(res, t)
+			}
+		}
 	}
 	return res
 }
